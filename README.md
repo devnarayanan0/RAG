@@ -1,7 +1,7 @@
 
 ## PROJECT ARCHITECTURE
 ```
-Promantus RAG Project
+PromantusML RAG
 │
 ├─── CHAT SYSTEM
 │    ├─ app/main.py (FastAPI server + CORS + chat endpoint)
