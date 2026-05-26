@@ -4,24 +4,23 @@
 PromantusML RAG
 │
 ├─── CHAT SYSTEM
-│    ├─ app/main.py (FastAPI server + CORS + chat endpoint)
+│    ├─ app/main.py 
 │    │  └─ app/rag.py (RAG pipeline orchestration)
 │    │     ├─ Query embedding (all-MiniLM-L6-v2)
 │    │     ├─ Pinecone retrieval (TOP_K=5)
-│    │     ├─ Context building (join TOP_K matches)
-│    │     └─ Groq LLM response (llama-3.3-70b-versatile, temp=0.1)
+│    │     ├─ Context building (TOP_K matches)
+│    │     └─ Groq LLM response (llama-3.3-70b)
 │    └─ app/models.py (Pydantic Query model)
 │
-├─── INGESTION SYSTEM (8001 port)
-│    ├─ ingest/ingestServer.py (FastAPI server + CORS + middleware)
-│    │  ├─ Routes: / /health /audit/{req_id} /audit/list/recent /upload
+├─── INGESTION SYSTEM  
+│    ├─ ingest/ingestServer.py 
+│    │  ├─ Routes: /health /audit/{req_id} /audit/list/recent /upload
 │    │  └─ Image steps: /image/start /image/encode /image/describe 
 │    │     /image/preview-chunks /image/embed /image/store /image/session/{id}
 │    │
-│    ├─ ingest/ingestRouter.py (Pipeline orchestration)
+│    ├─ ingest/ingestRouter.py (Pipeline)
 │    │  ├─ ingest_document() — PDF/DOCX/Image OCR/URL extraction pipeline
 │    │  ├─ ingest_image_objects() — Vision LLM description pipeline
-│    │  └─ 7 step functions for image object extraction state management
 │    │
 │    ├─ ingest/extractor/
 │    │  ├─ pdf.py (pypdf + pytesseract OCR fallback)
@@ -35,9 +34,7 @@ PromantusML RAG
 │    │  ├─ masking_service.py (Regex: account, SSN, credit card patterns)
 │    │  ├─ pinecone_service.py (Vector building + upsert)
 │    │  ├─ groq_vision.py (Vision LLM: meta-llama/llama-4-scout-17b-16e-instruct)
-│    │  ├─ image_encoder.py (Base64 encoding + MIME detection)
-│    │  └─ extractor_service.py (DEAD CODE — not imported)
-│    │
+│    │ 
 │    └─ ingest/frontend/
 │         ├─ admin.html (Upload UI + audit dashboard)
 │         └─ index.html (Chat frontend)
@@ -45,7 +42,7 @@ PromantusML RAG
 └─── DATA STORAGE
      ├─ Pinecone (Vector DB, 384-dim embeddings)
      │  └─ Index: ragintern1
-     └─ ingest/data/ (Temporary file storage)
+     └─ ingest/data/  
 ```
 ### Data Pipeline
 
