@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Knowledge Ingestion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:         #f0eff4;
+  --ink2:        #9896a4;
+  --ink3:        #5a5864;
+  --accent:      #f05a28;
+  --accent-bg:   rgba(240,90,40,.12);
+  --accent-glow: rgba(240,90,40,.22);
+  --green:       #3ecf74;
+  --green-bg:    rgba(62,207,116,.10);
+  --red:         #f87171;
+  --red-bg:      rgba(248,113,113,.10);
+  --yellow:      #fbbf24;
+  --yellow-bg:   rgba(251,191,36,.10);
+  --font: 'Outfit', sans-serif;
+  --mono: 'Geist Mono', monospace;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font);
+  overflow: hidden;
+}
+
+/* ── Gradient background ── */
+body {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(200,40,10,.55) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(180,30,5,.35) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 20% 90%,  rgba(120,20,5,.25) 0%, transparent 60%),
+    #0a0a0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px;
+  color: var(--ink);
+}
+
+/* ── Floating shell ── */
+.shell {
+  width: 100%;
+  max-width: 900px;
+  height: calc(100vh - 56px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(13,13,15,.82);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  box-shadow:
+    0 0 0 1px rgba(240,90,40,.08),
+    0 32px 80px rgba(0,0,0,.7),
+    0 0 120px rgba(200,40,10,.12);
+  animation: shellIn .55s var(--ease) both;
+}
+@keyframes shellIn {
+  from { opacity:0; transform: translateY(18px) scale(.98); }
+  to   { opacity:1; transform: none; }
+}
+
+/* ── Topbar ── */
+.topbar {
+  height: 52px;
+  background: rgba(18,18,20,.9);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  display: flex; align-items: center;
+  padding: 0 18px; gap: 11px;
+  flex-shrink: 0;
+}
+.topbar-logo {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), #c02808);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: #fff;
+  box-shadow: 0 0 14px var(--accent-glow);
+  flex-shrink: 0;
+}
+.topbar-title { font-size: 14px; font-weight: 500; color: var(--ink); letter-spacing: -.01em; }
+
+/* ── Body layout ── */
+.body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Left: main content ── */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 26px;
+  min-width: 0;
+}
+.main::-webkit-scrollbar { width: 4px; }
+.main::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 99px; }
+
+.page-header { margin-bottom: 24px; }
+.page-header h1 { font-size: 19px; font-weight: 600; letter-spacing: -.02em; margin-bottom: 4px; }
+.page-header p  { font-size: 13px; color: var(--ink2); }
+
+.tab-content { display: none; animation: fadeUp .25s var(--ease) both; }
+.tab-content.active { display: block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+
+.form-group { margin-bottom: 18px; }
+.label { display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 8px; color: var(--ink2); }
+
+/* drop zone */
+.drop-zone {
+  border: 1.5px dashed rgba(255,255,255,.15);
+  border-radius: 12px; padding: 36px 20px;
+  text-align: center; cursor: pointer;
+  background: rgba(255,255,255,.03);
+  transition: border-color .2s, background .2s;
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.dz-icon {
+  width: 50px; height: 50px; border-radius: 13px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: var(--ink2);
+  margin: 0 auto 13px;
+  transition: background .2s, color .2s;
+}
+.drop-zone:hover .dz-icon, .drop-zone.drag-over .dz-icon {
+  background: var(--accent-bg); color: var(--accent);
+  border-color: rgba(240,90,40,.25);
+}
+.dz-title { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+.dz-hint  { font-size: 12px; color: var(--ink3); }
+.dz-hint span { color: var(--accent); }
+
+input[type="file"] { display: none; }
+
+/* file preview */
+.file-preview {
+  display: none; margin-top: 10px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 10px; padding: 11px 13px;
+  align-items: center; gap: 11px;
+}
+.file-preview.show { display: flex; }
+.fp-icon {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: var(--accent-bg); border: 1px solid rgba(240,90,40,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: var(--accent); flex-shrink: 0;
+}
+.fp-info { flex: 1; min-width: 0; }
+.fp-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fp-size { font-size: 11px; color: var(--ink3); margin-top: 2px; font-family: var(--mono); }
+.remove-btn {
+  padding: 4px 11px; border-radius: 7px;
+  background: var(--red-bg); border: 1px solid rgba(248,113,113,.18);
+  color: var(--red); font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: var(--font); transition: all .15s;
+}
+.remove-btn:hover { background: rgba(248,113,113,.2); }
+
+/* url input */
+.url-input-wrap {
+  display: flex; align-items: center;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px; overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
+}
+.url-input-wrap:focus-within {
+  border-color: rgba(240,90,40,.5);
+  box-shadow: 0 0 0 3px rgba(240,90,40,.1);
+}
+.url-icon { padding: 0 12px; color: var(--ink3); font-size: 15px; display: flex; align-items: center; }
+input[type="url"] {
+  flex: 1; padding: 11px 12px 11px 0;
+  border: none; background: transparent;
+  font-family: var(--mono); font-size: 13px; color: var(--ink); outline: none;
+}
+input[type="url"]::placeholder { color: var(--ink3); }
+
+/* upload btn */
+.upload-btn {
+  width: 100%; padding: 11px;
+  background: linear-gradient(135deg, var(--accent), #c02808);
+  color: #fff; border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  font-family: var(--font);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: opacity .15s, transform .1s;
+  box-shadow: 0 2px 14px var(--accent-glow);
+}
+.upload-btn:hover  { opacity: .88; }
+.upload-btn:active { transform: scale(.99); }
+.upload-btn i { font-size: 15px; }
+
+/* status */
+.status {
+  display: none; margin-top: 16px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px; overflow: hidden;
+}
+.status.show { display: block; }
+.status-header {
+  padding: 10px 13px; display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; font-weight: 500;
+  background: rgba(255,255,255,.04);
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.status-header.loading { color: var(--accent); }
+.status-header.success { color: var(--green); background: var(--green-bg); }
+.status-header.error   { color: var(--red);   background: var(--red-bg); }
+.spinner {
+  width: 12px; height: 12px; flex-shrink: 0;
+  border: 2px solid rgba(240,90,40,.2); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.status-body {
+  padding: 13px; background: rgba(0,0,0,.25);
+  font-family: var(--mono); font-size: 12px; color: var(--ink2);
+  line-height: 1.65; max-height: 200px; overflow-y: auto;
+}
+
+/* summary */
+.summary { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
+.sum-item {
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px; padding: 11px;
+}
+.sum-label { font-size: 10.5px; color: var(--ink3); margin-bottom: 4px; }
+.sum-value { font-size: 19px; font-weight: 600; color: var(--accent); font-family: var(--mono); }
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 500; margin-top: 5px;
+}
+.badge.success { background: var(--green-bg); color: var(--green); }
+.badge.warning { background: var(--yellow-bg); color: var(--yellow); }
+.badge.error   { background: var(--red-bg); color: var(--red); }
+
+/* audit */
+.audit-panel { display: none; margin-top: 18px; }
+.audit-panel.show { display: block; }
+.audit-title {
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--ink3); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.audit-title i { font-size: 12px; color: var(--accent); }
+.audit-grid {
+  display: grid; grid-template-columns: repeat(2,1fr);
+  gap: 7px; margin-bottom: 9px;
+}
+.audit-item {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 8px; padding: 10px 12px;
+}
+.audit-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.audit-value { font-size: 12px; color: var(--ink); font-family: var(--mono); word-break: break-all; }
+.audit-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 7px; }
+.meta-stat {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 8px; padding: 10px; text-align: center;
+}
+.meta-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: .05em; }
+.meta-value { font-size: 17px; font-weight: 600; color: var(--accent); margin-top: 4px; font-family: var(--mono); }
+.meta-value.small { font-size: 11px; }
+
+/* ── Right: vertical menu ── */
+.right-menu {
+  width: 190px; min-width: 190px;
+  background: rgba(14,14,16,.7);
+  border-left: 1px solid rgba(255,255,255,.06);
+  display: flex; flex-direction: column;
+  padding: 18px 9px; gap: 2px;
+  overflow-y: auto;
+  backdrop-filter: blur(8px);
+}
+.right-menu::-webkit-scrollbar { width: 3px; }
+.right-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 99px; }
+
+.menu-section {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--ink3);
+  padding: 4px 10px 8px; margin-top: 4px;
+}
+.menu-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 8px;
+  font-size: 13px; font-weight: 400; color: var(--ink2);
+  cursor: pointer; border: none; background: transparent;
+  font-family: var(--font); width: 100%; text-align: left;
+  transition: background .15s, color .15s;
+  position: relative;
+}
+.menu-item i { font-size: 15px; flex-shrink: 0; }
+.menu-item:hover { background: rgba(255,255,255,.06); color: var(--ink); }
+.menu-item.active {
+  background: var(--accent-bg); color: var(--accent); font-weight: 500;
+}
+.menu-item.active::before {
+  content: '';
+  position: absolute; right: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 60%;
+  border-radius: 3px 0 0 3px;
+  background: var(--accent);
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 99px; }
+
+/* ── Step-by-step extraction UI ── */
+.extraction-modal {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.85); backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px;
+}
+.extraction-modal.show { display: flex; }
+.extraction-container {
+  width: 100%; max-width: 800px; max-height: 90vh;
+  background: rgba(13,13,15,.95); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 15px; display: flex; flex-direction: column;
+  overflow: hidden; box-shadow: 0 20px 80px rgba(0,0,0,.8);
+}
+.extraction-header {
+  padding: 18px; border-bottom: 1px solid rgba(255,255,255,.08);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.extraction-header h2 {
+  font-size: 16px; font-weight: 600; color: var(--ink); margin: 0;
+}
+.extraction-close {
+  background: none; border: none; color: var(--ink2); font-size: 20px;
+  cursor: pointer; padding: 0; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; transition: background .15s, color .15s;
+}
+.extraction-close:hover { background: rgba(255,255,255,.08); color: var(--ink); }
+
+.extraction-content {
+  flex: 1; overflow-y: auto; padding: 20px;
+}
+
+/* Accordion */
+.step-accordion {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.step-item {
+  border: 1px solid rgba(255,255,255,.08); border-radius: 10px;
+  background: rgba(255,255,255,.03); overflow: hidden;
+}
+.step-header {
+  padding: 13px 15px; cursor: pointer; display: flex;
+  align-items: center; gap: 12px; user-select: none;
+  transition: background .15s; border: none;
+  background: transparent; width: 100%; text-align: left;
+  font-family: var(--font);
+}
+.step-header:hover { background: rgba(255,255,255,.05); }
+.step-status {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+}
+.step-status.pending { background: rgba(255,255,255,.1); color: var(--ink2); }
+.step-status.loading { background: var(--accent-bg); color: var(--accent); animation: spin .7s linear infinite; }
+.step-status.done { background: var(--green-bg); color: var(--green); }
+.step-status.error { background: var(--red-bg); color: var(--red); }
+.step-title {
+  flex: 1; font-size: 13px; font-weight: 500; color: var(--ink);
+}
+.step-chevron {
+  font-size: 13px; color: var(--ink2); transition: transform .2s;
+}
+.step-item.expanded .step-chevron { transform: rotate(90deg); }
+
+.step-body {
+  display: none; padding: 0 15px 15px; border-top: 1px solid rgba(255,255,255,.06);
+  color: var(--ink2); font-size: 12px; line-height: 1.6;
+}
+.step-item.expanded .step-body { display: block; }
+.step-content { margin-bottom: 10px; }
+.step-metric {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0;
+}
+.metric {
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+  border-radius: 8px; padding: 10px; text-align: center;
+}
+.metric-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; margin-bottom: 4px; }
+.metric-value { font-size: 15px; font-weight: 600; color: var(--accent); font-family: var(--mono); }
+
+/* Description panel */
+.description-panel {
+  display: none; margin: 15px 0; padding: 15px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+}
+.description-panel.show { display: block; }
+.description-title {
+  font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase;
+  margin-bottom: 10px; letter-spacing: .05em;
+}
+.description-text {
+  font-size: 12px; color: var(--ink); line-height: 1.7;
+  max-height: 300px; overflow-y: auto; font-family: var(--mono);
+  background: rgba(0,0,0,.3); padding: 12px; border-radius: 8px;
+}
+.description-text::-webkit-scrollbar { width: 4px; }
+.description-text::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); }
+
+/* Chunk preview */
+.chunk-preview-list {
+  display: flex; flex-direction: column; gap: 10px; margin: 10px 0;
+}
+.chunk-item {
+  background: rgba(0,0,0,.3); border-left: 3px solid var(--accent);
+  padding: 10px 12px; border-radius: 6px; font-family: var(--mono);
+  font-size: 11px; color: var(--ink2); max-height: 80px; overflow: hidden;
+}
+.chunk-item strong {
+  display: block; color: var(--accent); margin-bottom: 6px; font-size: 10px;
+}
+
+/* Action buttons */
+.step-actions {
+  display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;
+}
+.btn-small {
+  padding: 8px 14px; border-radius: 7px; border: 1px solid rgba(255,255,255,.1);
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  font-family: var(--font); transition: all .15s;
+  background: rgba(255,255,255,.05); color: var(--ink);
+}
+.btn-small:hover { background: rgba(255,255,255,.08); }
+.btn-small.primary {
+  background: linear-gradient(135deg, var(--accent), #c02808);
+  color: #fff; border-color: rgba(240,90,40,.3);
+}
+.btn-small.primary:hover { opacity: .88; }
+.btn-small.danger {
+  background: var(--red-bg); color: var(--red); border-color: rgba(248,113,113,.2);
+}
+.btn-small.danger:hover { background: rgba(248,113,113,.18); }
+.btn-small:disabled {
+  opacity: .5; cursor: not-allowed;
+}
+
+/* Progress bar */
+.progress-bar {
+  width: 100%; height: 4px; background: rgba(255,255,255,.08);
+  border-radius: 2px; overflow: hidden; margin: 8px 0;
+}
+.progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--accent), #c02808);
+  width: 0%; transition: width .3s ease;
+}
+</style>
+</head>
+<body>
+
+<!-- Extraction Modal -->
+<div class="extraction-modal" id="extraction-modal">
+  <div class="extraction-container">
+    <div class="extraction-header">
+      <h2>Object Extraction Workflow</h2>
+      <button class="extraction-close" onclick="closeExtraction()">✕</button>
+    </div>
+    <div class="extraction-content" id="extraction-content">
+      <div class="step-accordion" id="steps-accordion"></div>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-logo"><i class="ti ti-database"></i></div>
+    <span class="topbar-title">Ingestion</span>
+  </div>
+
+  <div class="body">
+
+    <!-- Left: main content -->
+    <div class="main">
+      <div class="page-header">
+        <h1>Ingest Knowledge</h1>
+        <p>Upload documents or URLs to add them to your knowledge base</p>
+      </div>
+
+      <!-- PDF -->
+      <div id="pdf" class="tab-content active">
+        <div class="form-group">
+          <label class="label">Upload PDF document</label>
+          <div class="drop-zone" id="pdf-drop" onclick="document.getElementById('pdf-file').click()">
+            <div class="dz-icon"><i class="ti ti-file-type-pdf"></i></div>
+            <div class="dz-title">Drop your PDF here</div>
+            <div class="dz-hint">or <span>click to browse</span></div>
+          </div>
+          <div class="file-preview" id="pdf-preview">
+            <div class="fp-icon"><i class="ti ti-file-type-pdf"></i></div>
+            <div class="fp-info">
+              <div class="fp-name" id="pdf-name"></div>
+              <div class="fp-size" id="pdf-size"></div>
+            </div>
+            <button class="remove-btn" onclick="removeFile('pdf')">Remove</button>
+          </div>
+          <input type="file" id="pdf-file" accept=".pdf" onchange="handleFile('pdf', this.files[0])">
+        </div>
+        <button class="upload-btn" onclick="startPdfLiveExtraction()">
+          <i class="ti ti-sparkles"></i> Extract & Analyze
+        </button>
+        <div id="pdf-live-panel" style="display: none; margin-top: 20px; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; overflow: hidden; background: rgba(18,18,20,.6);">
+        </div>
+        <div class="status" id="pdf-status">
+          <div class="status-header" id="pdf-status-header"><div class="spinner"></div><span>Processing…</span></div>
+          <div class="status-body" id="pdf-status-body"></div>
+        </div>
+        <div class="audit-panel" id="pdf-audit"></div>
+      </div>
+
+      <!-- DOCX -->
+      <div id="docx" class="tab-content">
+        <div class="form-group">
+          <label class="label">Upload DOCX document</label>
+          <div class="drop-zone" id="docx-drop" onclick="document.getElementById('docx-file').click()">
+            <div class="dz-icon"><i class="ti ti-file-type-doc"></i></div>
+            <div class="dz-title">Drop your DOCX here</div>
+            <div class="dz-hint">or <span>click to browse</span></div>
+          </div>
+          <div class="file-preview" id="docx-preview">
+            <div class="fp-icon"><i class="ti ti-file-type-doc"></i></div>
+            <div class="fp-info">
+              <div class="fp-name" id="docx-name"></div>
+              <div class="fp-size" id="docx-size"></div>
+            </div>
+            <button class="remove-btn" onclick="removeFile('docx')">Remove</button>
+          </div>
+          <input type="file" id="docx-file" accept=".docx" onchange="handleFile('docx', this.files[0])">
+        </div>
+        <button class="upload-btn" onclick="upload('docx')">
+          <i class="ti ti-upload"></i> Upload DOCX
+        </button>
+        <div class="status" id="docx-status">
+          <div class="status-header" id="docx-status-header"><div class="spinner"></div><span>Processing…</span></div>
+          <div class="status-body" id="docx-status-body"></div>
+        </div>
+        <div class="audit-panel" id="docx-audit"></div>
+      </div>
+
+      <!-- Image -->
+      <div id="image" class="tab-content">
+        <div class="form-group">
+          <label class="label">Upload Image (PNG, JPG, JPEG)</label>
+          <div class="drop-zone" id="image-drop" onclick="document.getElementById('image-file').click()">
+            <div class="dz-icon"><i class="ti ti-photo"></i></div>
+            <div class="dz-title">Drop your image here</div>
+            <div class="dz-hint">or <span>click to browse</span></div>
+          </div>
+          <div class="file-preview" id="image-preview">
+            <div class="fp-icon"><i class="ti ti-photo"></i></div>
+            <div class="fp-info">
+              <div class="fp-name" id="image-name"></div>
+              <div class="fp-size" id="image-size"></div>
+            </div>
+            <button class="remove-btn" onclick="removeFile('image')">Remove</button>
+          </div>
+          <input type="file" id="image-file" accept="image/png,image/jpeg" onchange="handleFile('image', this.files[0])">
+        </div>
+
+        <div class="form-group">
+          <label class="label">Extraction Mode</label>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 10px; background: rgba(255,255,255,.04); border-radius: 8px; border: 1px solid rgba(255,255,255,.08); cursor: pointer;" onclick="selectImageMode('text')">
+              <input type="radio" name="image-mode" value="text" id="mode-text" checked onclick="selectImageMode('text')" style="cursor: pointer;" />
+              <label for="mode-text" style="cursor: pointer; flex: 1; margin: 0; font-size: 13px; font-weight: 500;">
+                <div style="color: var(--ink);">Text Extraction</div>
+                <div style="font-size: 11px; color: var(--ink3); margin-top: 2px;">OCR from image</div>
+              </label>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 10px; background: rgba(255,255,255,.04); border-radius: 8px; border: 1px solid rgba(255,255,255,.08); cursor: pointer;" onclick="selectImageMode('object')">
+              <input type="radio" name="image-mode" value="object" id="mode-object" onclick="selectImageMode('object')" style="cursor: pointer;" />
+              <label for="mode-object" style="cursor: pointer; flex: 1; margin: 0; font-size: 13px; font-weight: 500;">
+                <div style="color: var(--ink);">Object Extraction</div>
+                <div style="font-size: 11px; color: var(--ink3); margin-top: 2px;">Vision AI description</div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <button class="upload-btn" onclick="upload('image')">
+          <i class="ti ti-upload"></i> Upload Image
+        </button>
+        <div class="status" id="image-status">
+          <div class="status-header" id="image-status-header"><div class="spinner"></div><span>Processing…</span></div>
+          <div class="status-body" id="image-status-body"></div>
+        </div>
+        <div id="image-progress-steps" style="display: none; margin-top: 20px; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; overflow: hidden;">
+        </div>
+        <div class="audit-panel" id="image-audit"></div>
+      </div>
+
+      <!-- URL -->
+      <div id="url" class="tab-content">
+        <div class="form-group">
+          <label class="label">Enter URL to ingest</label>
+          <div class="url-input-wrap">
+            <div class="url-icon"><i class="ti ti-link"></i></div>
+            <input type="url" id="url-input" placeholder="https://example.com" />
+          </div>
+        </div>
+        <button class="upload-btn" onclick="upload('url')">
+          <i class="ti ti-upload"></i> Upload URL
+        </button>
+        <div class="status" id="url-status">
+          <div class="status-header" id="url-status-header"><div class="spinner"></div><span>Processing…</span></div>
+          <div class="status-body" id="url-status-body"></div>
+        </div>
+        <div class="audit-panel" id="url-audit"></div>
+      </div>
+
+    </div><!-- /main -->
+
+    <!-- Right: vertical menu -->
+    <div class="right-menu">
+      <div class="menu-section">Source Type</div>
+      <button class="menu-item active" data-tab="pdf">
+        <i class="ti ti-file-type-pdf"></i> PDF
+      </button>
+      <button class="menu-item" data-tab="docx">
+        <i class="ti ti-file-type-doc"></i> DOCX
+      </button>
+      <button class="menu-item" data-tab="image">
+        <i class="ti ti-photo"></i> Image
+      </button>
+      <button class="menu-item" data-tab="url">
+        <i class="ti ti-link"></i> URL
+      </button>
+    </div>
+
+  </div><!-- /body -->
+</div><!-- /shell -->
+
+<script>
+const API_URL = 'http://127.0.0.1:8001';
+const selectedFiles = {};
+
+document.querySelectorAll('.menu-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById(item.dataset.tab).classList.add('active');
+  });
+});
+
+['pdf', 'docx', 'image'].forEach(type => {
+  const zone = document.getElementById(`${type}-drop`);
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', ()  => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) handleFile(type, e.dataTransfer.files[0]);
+  });
+});
+
+function handleFile(type, file) {
+  if (!file) return;
+  selectedFiles[type] = file;
+  document.getElementById(`${type}-name`).textContent = file.name;
+  document.getElementById(`${type}-size`).textContent = `${(file.size / 1024).toFixed(1)} KB`;
+  document.getElementById(`${type}-preview`).classList.add('show');
+}
+
+function removeFile(type) {
+  delete selectedFiles[type];
+  document.getElementById(`${type}-preview`).classList.remove('show');
+  document.getElementById(`${type}-file`).value = '';
+}
+
+async function upload(type) {
+  if (type === 'image') {
+    const mode = document.querySelector('input[name="image-mode"]:checked').value;
+    if (mode === 'object') {
+      // Start object extraction workflow
+      if (!selectedFiles[type]) {
+        alert('Please select an image file');
+        return;
+      }
+      startObjectExtraction(selectedFiles[type]);
+      return;
+    }
+  }
+
+  // Default flow for non-object extractions
+  const statusEl = document.getElementById(`${type}-status`);
+  const headerEl = document.getElementById(`${type}-status-header`);
+  const bodyEl   = document.getElementById(`${type}-status-body`);
+  const auditEl  = document.getElementById(`${type}-audit`);
+
+  const formData = new FormData();
+  formData.append('source_type', type);
+  formData.append('extraction_type', type === 'image' ? 'text' : 'default');
+
+  if (type === 'url') {
+    const url = document.getElementById('url-input').value.trim();
+    if (!url) { showErr(statusEl, headerEl, bodyEl, 'Please enter a URL.'); return; }
+    formData.append('url', url);
+  } else {
+    if (!selectedFiles[type]) { showErr(statusEl, headerEl, bodyEl, 'Please select a file.'); return; }
+    formData.append('file', selectedFiles[type]);
+  }
+
+  statusEl.classList.add('show');
+  headerEl.className = 'status-header loading';
+  headerEl.innerHTML = '<div class="spinner"></div><span>Processing…</span>';
+  bodyEl.textContent = 'Uploading and extracting content…';
+  auditEl.classList.remove('show');
+
+  try {
+    const res  = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+    const data = await res.json();
+
+    auditEl.classList.add('show');
+    auditEl.innerHTML = buildAudit(data);
+
+    if (data.uploaded || data.message) {
+      headerEl.className = 'status-header success';
+      headerEl.innerHTML = '<i class="ti ti-circle-check"></i><span>Ingestion successful</span>';
+      bodyEl.innerHTML = buildSummary(data);
+    } else if (data.error) {
+      headerEl.className = 'status-header error';
+      headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Error</span>';
+      bodyEl.textContent = data.error;
+    } else if (data.duplicate) {
+      headerEl.className = 'status-header error';
+      headerEl.innerHTML = '<i class="ti ti-alert-triangle"></i><span>Duplicate rejected</span>';
+      bodyEl.textContent = `Reason: ${data.reason || 'Duplicate detected'}`;
+    } else {
+      headerEl.className = 'status-header error';
+      headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Failed</span>';
+      bodyEl.textContent = JSON.stringify(data, null, 2);
+    }
+  } catch (err) {
+    showErr(statusEl, headerEl, bodyEl, `Connection error: ${err.message}`);
+  }
+}
+
+function showErr(statusEl, headerEl, bodyEl, msg) {
+  statusEl.classList.add('show');
+  headerEl.className = 'status-header error';
+  headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Error</span>';
+  bodyEl.textContent = msg;
+}
+
+function buildSummary(data) {
+  return `<div class="summary">
+    <div class="sum-item"><div class="sum-label">Chunks Created</div><div class="sum-value">${data.chunks || 0}</div></div>
+    <div class="sum-item"><div class="sum-label">Vectors Written</div><div class="sum-value">${data.vectors_written || 0}</div></div>
+    <div class="sum-item"><div class="sum-label">Duplicate</div><div class="sum-value">${data.duplicate ? 'Yes' : 'No'}</div>${data.duplicate ? '<span class="badge error">Rejected</span>' : '<span class="badge success">Unique</span>'}</div>
+    <div class="sum-item"><div class="sum-label">Data Masked</div><div class="sum-value">${data.masked ? 'Yes' : 'No'}</div>${data.masked ? '<span class="badge warning">Applied</span>' : ''}</div>
+    ${data.ocr_used ? '<div class="sum-item"><div class="sum-label">OCR Used</div><div class="sum-value">Yes</div><span class="badge warning">Fallback</span></div>' : ''}
+  </div>`;
+}
+
+function buildAudit(data) {
+  const reqId   = data.request_id ? data.request_id.substring(0, 8) + '…' : '—';
+  const time    = data.processing_time_ms ? `${data.processing_time_ms}ms` : '—';
+  const chars   = data.extraction?.chars ?? '—';
+  const ocr     = data.extraction?.ocr_used ? '✓ Yes' : '✗ No';
+  const masked  = data.extraction?.masked ? '✓ Yes' : '✗ No';
+  const chunks  = data.chunking?.total_chunks || data.chunks || 0;
+  const vectors = data.pinecone?.vectors_written || 0;
+  const pcone   = data.pinecone?.status === 'success' ? '✓ Success' : data.uploaded ? '—' : '✗ Failed';
+  const hash    = data.metadata?.hash ? data.metadata.hash.substring(0,12)+'…' : (data.duplicate?.incoming_hash ? data.duplicate.incoming_hash.substring(0,12)+'…' : '—');
+  const dup     = data.duplicate?.status ? '⚠ Duplicate' : '✓ Unique';
+
+  let dupSection = '';
+  if (data.duplicate?.status) {
+    const dupType  = data.duplicate.type === 'exact_hash_match' ? 'Exact Hash Match' : 'Similarity Threshold';
+    const inHash   = data.duplicate.incoming_hash ? data.duplicate.incoming_hash.substring(0,12)+'…' : '—';
+    const exHash   = data.duplicate.existing_hash ? data.duplicate.existing_hash.substring(0,12)+'…' : '—';
+    const matchFile= data.duplicate.matched_file || data.duplicate.existing_metadata?.filename || '—';
+    const matchChunk= data.duplicate.matched_chunk ?? data.duplicate.existing_metadata?.chunk_index ?? '—';
+    const matchTime= data.duplicate.matched_upload_time || data.duplicate.existing_metadata?.upload_time || '—';
+    const matchSource= data.duplicate.matched_source || data.duplicate.existing_metadata?.source || '—';
+    const vectorId = data.duplicate.existing_vector_id ? data.duplicate.existing_vector_id.substring(0,12)+'…' : '—';
+    dupSection = `<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)">
+      <div class="audit-title" style="margin-bottom:8px"><i class="ti ti-alert-triangle"></i> Duplicate Details</div>
+      <div class="audit-grid">
+        <div class="audit-item"><div class="audit-label">Type</div><div class="audit-value">${dupType}</div></div>
+        <div class="audit-item"><div class="audit-label">Incoming Hash</div><div class="audit-value" style="font-size:11px">${inHash}</div></div>
+        <div class="audit-item"><div class="audit-label">Existing Hash</div><div class="audit-value" style="font-size:11px">${exHash}</div></div>
+        <div class="audit-item"><div class="audit-label">Matched File</div><div class="audit-value">${matchFile}</div></div>
+        <div class="audit-item"><div class="audit-label">Matched Chunk</div><div class="audit-value">${matchChunk}</div></div>
+        <div class="audit-item"><div class="audit-label">Matched Upload</div><div class="audit-value" style="font-size:11px">${matchTime}</div></div>
+        <div class="audit-item"><div class="audit-label">Source</div><div class="audit-value">${matchSource}</div></div>
+        <div class="audit-item"><div class="audit-label">Vector ID</div><div class="audit-value" style="font-size:11px">${vectorId}</div></div>
+      </div>
+    </div>`;
+  }
+
+  return `
+    <div class="audit-title"><i class="ti ti-eye"></i> Ingestion Audit</div>
+    <div class="audit-grid">
+      <div class="audit-item"><div class="audit-label">Upload Status</div><div class="audit-value">${data.uploaded ? '✓ Uploaded' : data.error ? '✗ Error' : '✗ Rejected'}</div></div>
+      <div class="audit-item"><div class="audit-label">Processing Time</div><div class="audit-value">${time}</div></div>
+      <div class="audit-item"><div class="audit-label">Extraction Chars</div><div class="audit-value">${chars}</div></div>
+      <div class="audit-item"><div class="audit-label">OCR Used</div><div class="audit-value">${ocr}</div></div>
+      <div class="audit-item"><div class="audit-label">SHA256 Hash</div><div class="audit-value" style="font-size:11px">${hash}</div></div>
+      <div class="audit-item"><div class="audit-label">Duplicate Check</div><div class="audit-value">${dup}</div></div>
+      <div class="audit-item"><div class="audit-label">Data Masked</div><div class="audit-value">${masked}</div></div>
+      <div class="audit-item"><div class="audit-label">Pinecone Status</div><div class="audit-value">${pcone}</div></div>
+    </div>
+    <div class="audit-meta">
+      <div class="meta-stat"><div class="meta-label">Chunks</div><div class="meta-value">${chunks}</div></div>
+      <div class="meta-stat"><div class="meta-label">Vectors</div><div class="meta-value">${vectors}</div></div>
+      <div class="meta-stat"><div class="meta-label">Request ID</div><div class="meta-value small">${reqId}</div></div>
+    </div>
+    ${dupSection}`;
+}
+
+function selectImageMode(mode) {
+  document.getElementById('mode-text').checked = mode === 'text';
+  document.getElementById('mode-object').checked = mode === 'object';
+}
+
+// ============ OBJECT EXTRACTION WORKFLOW ============
+
+let currentSession = null;
+let currentSteps = {};
+
+async function startObjectExtraction(file) {
+  // Open modal and start extraction
+  document.getElementById('extraction-modal').classList.add('show');
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  try {
+    const res = await fetch(`${API_URL}/image/start`, { method: 'POST', body: formData });
+    const data = await res.json();
+    
+    if (!data.success) {
+      showExtractionError(data.error || 'Failed to save image');
+      return;
+    }
+    
+    currentSession = data.session_id;
+    currentSteps = {
+      'save': { status: 'done', data: data },
+      'encode': { status: 'pending', data: null },
+      'describe': { status: 'pending', data: null },
+      'chunks': { status: 'pending', data: null },
+      'embed': { status: 'pending', data: null },
+      'store': { status: 'pending', data: null }
+    };
+    
+    renderSteps();
+    expandStep('save');
+    
+    // Auto-proceed to encode
+    await encodeImageStep();
+  } catch (err) {
+    showExtractionError(err.message);
+  }
+}
+
+function renderSteps() {
+  const accordion = document.getElementById('steps-accordion');
+  accordion.innerHTML = `
+    ${createStepItem('save', '1. Save Original', 'Saving image to storage...')}
+    ${createStepItem('encode', '2. Convert to Base64', 'Encoding image...')}
+    ${createStepItem('describe', '3. Vision Analysis', 'Analyzing image with AI...')}
+    ${createStepItem('chunks', '5. Preview Chunks', 'Generating text chunks...')}
+    ${createStepItem('embed', '6. Generate Embeddings', 'Creating vector embeddings...')}
+    ${createStepItem('store', '7. Store in Pinecone', 'Uploading to knowledge base...')}
+  `;
+  
+  // Attach click handlers
+  document.querySelectorAll('.step-header').forEach(el => {
+    el.addEventListener('click', function() {
+      const item = this.closest('.step-item');
+      item.classList.toggle('expanded');
+    });
+  });
+}
+
+function createStepItem(id, title, description) {
+  const step = currentSteps[id] || { status: 'pending', data: null };
+  const statusClass = step.status;
+  const statusIcon = {
+    'pending': '○',
+    'loading': '⟳',
+    'done': '✓',
+    'error': '✕'
+  }[statusClass] || '○';
+  
+  return `
+    <div class="step-item" id="step-${id}">
+      <button class="step-header">
+        <div class="step-status ${statusClass}">${statusIcon}</div>
+        <div class="step-title">${title}</div>
+        <div class="step-chevron">›</div>
+      </button>
+      <div class="step-body">
+        <div class="step-content">
+          <p>${description}</p>
+          <div class="progress-bar"><div class="progress-fill" style="width: ${statusClass === 'done' ? '100' : statusClass === 'loading' ? '60' : '0'}%"></div></div>
+          ${renderStepContent(id)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderStepContent(id) {
+  const step = currentSteps[id];
+  if (!step || !step.data) return '';
+  
+  const data = step.data;
+  
+  switch(id) {
+    case 'save':
+      return `
+        <div class="step-metric">
+          <div class="metric"><div class="metric-label">Location</div><div class="metric-value small">${data.filename}</div></div>
+          <div class="metric"><div class="metric-label">Size</div><div class="metric-value">${(data.size_bytes / 1024).toFixed(1)}KB</div></div>
+        </div>
+      `;
+      
+    case 'encode':
+      return `
+        <div class="step-metric">
+          <div class="metric"><div class="metric-label">Base64 Length</div><div class="metric-value">${data.base64_length || 0}</div></div>
+          <div class="metric"><div class="metric-label">File</div><div class="metric-value small">${data.filename || '—'}</div></div>
+        </div>
+      `;
+      
+    case 'describe':
+      // Handle error response
+      if (data.error) {
+        const debug = data.debug || {};
+        return `
+          <div style="background: var(--red-bg); border: 1px solid rgba(248,113,113,.2); border-radius: 8px; padding: 12px; color: var(--red); font-size: 12px; margin: 10px 0; line-height: 1.6;">
+            <strong>Error:</strong> ${data.error}
+          </div>
+          <div class="step-metric">
+            <div class="metric"><div class="metric-label">Base64 Length</div><div class="metric-value">${debug.base64_length || 0}</div></div>
+            <div class="metric"><div class="metric-label">MIME Type</div><div class="metric-value small">${debug.mime_type || '—'}</div></div>
+            <div class="metric"><div class="metric-label">Model</div><div class="metric-value small">${debug.model || '—'}</div></div>
+            <div class="metric"><div class="metric-label">Status Code</div><div class="metric-value small">${debug.status_code || '—'}</div></div>
+          </div>
+          ${debug.response_body ? `<div style="background: rgba(0,0,0,.3); padding: 10px; border-radius: 6px; font-family: var(--mono); font-size: 11px; color: var(--ink2); max-height: 120px; overflow-y: auto; margin-top: 10px;"><strong>Raw Response:</strong><br/>${debug.response_body}</div>` : ''}
+          <div class="step-actions">
+            <button class="btn-small primary" onclick="describeImageStep()">Retry</button>
+            <button class="btn-small danger" onclick="closeExtraction()">Cancel</button>
+          </div>
+        `;
+      }
+      
+      // Handle success response with description
+      if (data.description) {
+        const debug = data.debug || {};
+        const isValid = data.description && !data.description.startsWith('Image analyzed');
+        return `
+          <div class="description-panel show">
+            <div class="description-title">Generated Description</div>
+            <div class="description-text">${data.description}</div>
+          </div>
+          
+          <div style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 8px; padding: 12px; margin: 10px 0;">
+            <div style="font-size: 10px; font-weight: 600; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; letter-spacing: .05em;">Debug Info</div>
+            <div class="step-metric">
+              <div class="metric"><div class="metric-label">Base64 Length</div><div class="metric-value">${debug.base64_length || 0}</div></div>
+              <div class="metric"><div class="metric-label">MIME Type</div><div class="metric-value small">${debug.mime_type || '—'}</div></div>
+              <div class="metric"><div class="metric-label">Model</div><div class="metric-value small">${debug.model || 'groq'}</div></div>
+              <div class="metric"><div class="metric-label">Description Length</div><div class="metric-value">${debug.description_length || 0}</div></div>
+              <div class="metric"><div class="metric-label">Processing Time</div><div class="metric-value small">${data.processing_time_ms || 0}ms</div></div>
+              <div class="metric"><div class="metric-label">Tokens Used</div><div class="metric-value">${debug.tokens_used || 0}</div></div>
+            </div>
+          </div>
+          
+          ${isValid ? renderDescriptionActions() : `
+            <div style="background: var(--yellow-bg); border: 1px solid rgba(251,191,36,.2); border-radius: 8px; padding: 12px; color: var(--yellow); font-size: 12px; margin: 10px 0;">
+              <strong>Warning:</strong> Description appears to be generic. Please regenerate or cancel.
+            </div>
+            <div class="step-actions">
+              <button class="btn-small primary" onclick="regenerateDescription()">Regenerate</button>
+              <button class="btn-small danger" onclick="closeExtraction()">Cancel</button>
+            </div>
+          `}
+        `;
+      }
+      return '';
+      
+    case 'chunks':
+      if (data.chunks && data.chunks.length > 0) {
+        const preview = data.chunks.slice(0, 3).map((chunk, i) => 
+          `<div class="chunk-item"><strong>Chunk ${i+1}</strong>${chunk.substring(0, 100)}...</div>`
+        ).join('');
+        return `
+          <div class="chunk-preview-list">${preview}${data.chunks.length > 3 ? `<div class="chunk-item"><strong>... and ${data.chunks.length - 3} more</strong></div>` : ''}</div>
+          <div class="step-metric">
+            <div class="metric"><div class="metric-label">Total Chunks</div><div class="metric-value">${data.total_chunks || 0}</div></div>
+            <div class="metric"><div class="metric-label">Chunk Size</div><div class="metric-value small">${data.chunk_size || 800}</div></div>
+          </div>
+          ${renderChunkActions()}
+        `;
+      }
+      return '';
+      
+    case 'embed':
+      if (data.vectors_created !== undefined) {
+        return `
+          <div class="step-metric">
+            <div class="metric"><div class="metric-label">Vectors Created</div><div class="metric-value">${data.vectors_created || 0}</div></div>
+            <div class="metric"><div class="metric-label">Status</div><div class="metric-value small">Ready</div></div>
+          </div>
+          ${renderEmbedActions()}
+        `;
+      }
+      return '';
+      
+    case 'store':
+      if (data.vectors_written !== undefined) {
+        return `
+          <div class="step-metric">
+            <div class="metric"><div class="metric-label">Vectors Stored</div><div class="metric-value">${data.vectors_written || 0}</div></div>
+            <div class="metric"><div class="metric-label">Status</div><div class="metric-value small">Complete</div></div>
+          </div>
+          ${renderCompleteActions()}
+        `;
+      }
+      return '';
+      
+    default:
+      return '';
+  }
+}
+
+function renderDescriptionActions() {
+  return `
+    <div class="step-actions">
+      <button class="btn-small primary" onclick="proceedToChunking()">Proceed to Embedding</button>
+      <button class="btn-small" onclick="regenerateDescription()">Regenerate</button>
+      <button class="btn-small danger" onclick="closeExtraction()">Cancel</button>
+    </div>
+  `;
+}
+
+function renderChunkActions() {
+  return `
+    <div class="step-actions">
+      <button class="btn-small primary" onclick="generateEmbeddings()">Generate Embeddings</button>
+      <button class="btn-small danger" onclick="closeExtraction()">Cancel</button>
+    </div>
+  `;
+}
+
+function renderEmbedActions() {
+  return `
+    <div class="step-actions">
+      <button class="btn-small primary" onclick="storeInPinecone()">Store in Pinecone</button>
+      <button class="btn-small danger" onclick="closeExtraction()">Cancel</button>
+    </div>
+  `;
+}
+
+function renderCompleteActions() {
+  return `
+    <div class="step-actions">
+      <button class="btn-small primary" onclick="closeExtraction()">Complete</button>
+    </div>
+  `;
+}
+
+async function encodeImageStep() {
+  if (!currentSession) return;
+  updateStepStatus('encode', 'loading');
+  expandStep('encode');
+  
+  try {
+    const res = await fetch(`${API_URL}/image/encode`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `session_id=${currentSession}`
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      currentSteps['encode'].data = data;
+      currentSteps['encode'].status = 'done';
+      renderSteps();
+      expandStep('encode');
+      
+      // Auto-proceed to describe
+      await describeImageStep();
+    } else {
+      showExtractionError(data.error);
+    }
+  } catch (err) {
+    showExtractionError(err.message);
+  }
+}
+
+async function describeImageStep() {
+  if (!currentSession) return;
+  updateStepStatus('describe', 'loading');
+  expandStep('describe');
+  
+  try {
+    const res = await fetch(`${API_URL}/image/describe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `session_id=${currentSession}`
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      currentSteps['describe'].data = data;
+      currentSteps['describe'].status = 'done';
+      renderSteps();
+      expandStep('describe');
+    } else {
+      // Store error response with full debug info
+      currentSteps['describe'].data = data;
+      currentSteps['describe'].status = 'error';
+      renderSteps();
+      expandStep('describe');
+    }
+  } catch (err) {
+    currentSteps['describe'].data = {
+      error: err.message,
+      debug: {}
+    };
+    currentSteps['describe'].status = 'error';
+    renderSteps();
+    expandStep('describe');
+  }
+}
+
+async function regenerateDescription() {
+  // Could add retry logic here
+  await describeImageStep();
+}
+
+async function proceedToChunking() {
+  if (!currentSession) return;
+  
+  // BLOCK: Check if vision analysis was successful
+  const describeStep = currentSteps['describe'];
+  if (!describeStep || describeStep.status !== 'done' || !describeStep.data?.success) {
+    alert('Vision analysis must complete successfully before proceeding to embedding.');
+    return;
+  }
+  
+  updateStepStatus('chunks', 'loading');
+  expandStep('chunks');
+  
+  try {
+    const res = await fetch(`${API_URL}/image/preview-chunks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `session_id=${currentSession}`
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      currentSteps['chunks'].data = data;
+      currentSteps['chunks'].status = 'done';
+      renderSteps();
+      expandStep('chunks');
+    } else {
+      currentSteps['chunks'].data = data;
+      currentSteps['chunks'].status = 'error';
+      renderSteps();
+      expandStep('chunks');
+    }
+  } catch (err) {
+    currentSteps['chunks'].data = {
+      error: err.message,
+      debug: {}
+    };
+    currentSteps['chunks'].status = 'error';
+    renderSteps();
+    expandStep('chunks');
+  }
+}
+
+async function generateEmbeddings() {
+  if (!currentSession) return;
+  updateStepStatus('embed', 'loading');
+  expandStep('embed');
+  
+  try {
+    const res = await fetch(`${API_URL}/image/embed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `session_id=${currentSession}`
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      currentSteps['embed'].data = data;
+      currentSteps['embed'].status = 'done';
+      renderSteps();
+      expandStep('embed');
+    } else {
+      showExtractionError(data.error);
+    }
+  } catch (err) {
+    showExtractionError(err.message);
+  }
+}
+
+async function storeInPinecone() {
+  if (!currentSession) return;
+  updateStepStatus('store', 'loading');
+  expandStep('store');
+  
+  try {
+    const res = await fetch(`${API_URL}/image/store`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `session_id=${currentSession}`
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      currentSteps['store'].data = data;
+      currentSteps['store'].status = 'done';
+      renderSteps();
+      expandStep('store');
+    } else {
+      showExtractionError(data.error);
+    }
+  } catch (err) {
+    showExtractionError(err.message);
+  }
+}
+
+function updateStepStatus(stepId, status) {
+  if (currentSteps[stepId]) {
+    currentSteps[stepId].status = status;
+  }
+}
+
+function expandStep(stepId) {
+  document.querySelectorAll('.step-item').forEach(el => el.classList.remove('expanded'));
+  const step = document.getElementById(`step-${stepId}`);
+  if (step) step.classList.add('expanded');
+}
+
+function showExtractionError(msg) {
+  const content = document.getElementById('extraction-content');
+  const errorEl = document.createElement('div');
+  errorEl.style.cssText = 'color: var(--red); padding: 15px; background: var(--red-bg); border-radius: 10px; font-size: 12px; line-height: 1.6;';
+  errorEl.textContent = 'Error: ' + msg;
+  content.appendChild(errorEl);
+}
+
+function closeExtraction() {
+  document.getElementById('extraction-modal').classList.remove('show');
+  currentSession = null;
+  currentSteps = {};
+  removeFile('image');
+}
+
+// ============ PDF LIVE EXTRACTION ============
+
+async function startPdfLiveExtraction() {
+  if (!selectedFiles['pdf']) {
+    alert('Please select a PDF file');
+    return;
+  }
+
+  const panel = document.getElementById('pdf-live-panel');
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div style="padding: 20px; text-align: center;">
+      <div class="spinner"></div>
+      <div style="color: var(--ink2); margin-top: 12px; font-size: 13px;">Extracting PDF pages...</div>
+    </div>
+  `;
+
+  const formData = new FormData();
+  formData.append('file', selectedFiles['pdf']);
+
+  try {
+    const res = await fetch(`${API_URL}/pdf/live-extract`, { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!data.success) {
+      panel.innerHTML = `
+        <div style="padding: 20px; color: var(--red); background: var(--red-bg); border: 1px solid rgba(248,113,113,.2); border-radius: 8px;">
+          <strong>Error:</strong> ${data.error || 'Failed to extract PDF'}
+        </div>
+      `;
+      return;
+    }
+
+    renderPdfExtraction(data);
+  } catch (err) {
+    panel.innerHTML = `
+      <div style="padding: 20px; color: var(--red); background: var(--red-bg); border: 1px solid rgba(248,113,113,.2); border-radius: 8px;">
+        <strong>Connection Error:</strong> ${err.message}
+      </div>
+    `;
+  }
+}
+
+function renderPdfExtraction(data) {
+  const panel = document.getElementById('pdf-live-panel');
+  let html = `
+    <div style="padding: 18px; border-bottom: 1px solid rgba(255,255,255,.07);">
+      <div style="font-weight: 600; color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px;">
+        Extraction Complete
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+        <div style="padding: 10px; background: rgba(62,207,116,.08); border-radius: 6px;">
+          <div style="font-size: 11px; color: var(--ink2); margin-bottom: 4px;">Pages Extracted</div>
+          <div style="font-size: 16px; font-weight: 600; color: var(--green);">${data.total_pages || 0}</div>
+        </div>
+        <div style="padding: 10px; background: rgba(251,191,36,.08); border-radius: 6px;">
+          <div style="font-size: 11px; color: var(--ink2); margin-bottom: 4px;">Images Found</div>
+          <div style="font-size: 16px; font-weight: 600; color: var(--yellow);">${data.total_images || 0}</div>
+        </div>
+        <div style="padding: 10px; background: rgba(240,90,40,.08); border-radius: 6px;">
+          <div style="font-size: 11px; color: var(--ink2); margin-bottom: 4px;">Total Text</div>
+          <div style="font-size: 14px; font-weight: 600; color: var(--accent);">
+            ${data.pages.reduce((sum, p) => sum + (p.text || '').length, 0).toLocaleString()} chars
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const totalPages = data.total_pages || 0;
+  data.pages.forEach(page => {
+    html += renderPdfPage(page, totalPages);
+  });
+
+  html += `
+    <div style="padding: 18px; border-top: 1px solid rgba(255,255,255,.07); display: flex; gap: 10px; align-items: center;">
+      <button style="padding: 11px 16px; background: linear-gradient(135deg, var(--accent), #c02808); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s; box-shadow: 0 2px 14px var(--accent-glow); white-space: nowrap;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'" onclick="continueToPinecone()">
+        <i class="ti ti-check"></i> Continue to Embedding
+      </button>
+      <button style="padding: 11px 16px; background: rgba(255,255,255,.08); color: var(--ink); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s; white-space: nowrap;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'" onclick="document.getElementById('pdf-live-panel').style.display='none'">
+        <i class="ti ti-x"></i> Close
+      </button>
+    </div>
+  `;
+
+  panel.innerHTML = html;
+}
+
+function renderPdfPage(page, totalPages) {
+  const pageNum = page.page || '?';
+  const totalStr = totalPages || '?';
+  const text = page.text || '';
+  const images = page.images || [];
+
+  let html = `
+    <div style="padding: 18px; border-top: 1px solid rgba(255,255,255,.07);">
+      <div style="color: var(--accent); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px;">
+        PAGE ${pageNum} of ${totalStr}
+      </div>
+  `;
+
+  // Render text first
+  if (text) {
+    html += `
+      <div style="background: rgba(255,255,255,.04); padding: 12px; border-radius: 6px; margin-bottom: 12px; max-height: 180px; overflow-y: auto; border: 1px solid rgba(255,255,255,.06);">
+        <div style="font-size: 11px; color: var(--ink2); margin-bottom: 8px; font-weight: 500;">Extracted Text</div>
+        <div style="font-family: var(--mono); font-size: 12px; color: var(--ink); line-height: 1.5; white-space: pre-wrap; word-break: break-word;">
+          ${text.substring(0, 350)}${text.length > 350 ? '...' : ''}
+        </div>
+        <div style="font-size: 10px; color: var(--ink3); margin-top: 8px;">${text.length} characters</div>
+      </div>
+    `;
+  }
+
+  // Render images after text
+  if (images && images.length > 0) {
+    html += `
+      <div style="margin-bottom: 12px;">
+        <div style="font-size: 11px; color: var(--yellow); font-weight: 500; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+          <i class="ti ti-photo"></i> ${images.length} Image${images.length > 1 ? 's' : ''}
+        </div>
+    `;
+    
+    images.forEach((img, idx) => {
+      const dims = img.dimensions || 'unknown';
+      const desc = img.description || 'Processing...';
+      const model = img.model || 'groq';
+      
+      html += `
+        <div style="background: rgba(255,255,255,.04); padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,.06);">
+          <div style="font-size: 11px; color: var(--ink2); font-weight: 500; margin-bottom: 6px;">Image ${idx + 1} — ${dims}</div>
+          <div style="font-size: 12px; color: var(--ink); line-height: 1.5; margin-bottom: 6px; max-height: 100px; overflow-y: auto;">${desc.substring(0, 220)}${desc && desc.length > 220 ? '...' : ''}</div>
+          <div style="font-size: 10px; color: var(--ink3);">via ${model}</div>
+        </div>
+      `;
+    });
+    
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+async function proceedPdfToChunking(dataJson) {
+  const data = JSON.parse(dataJson);
+  alert(`✓ PDF extraction complete!\n\nPages: ${data.total_pages}\nImages analyzed: ${data.total_images}\n\nChunking & embedding ready. (Feature coming soon)`);
+}
+
+function continueToPinecone() {
+  alert('Ready to embed & store in Pinecone!\n\nThis will chunk text and store vectors. Proceed?');
+}
+
+</script>
+</body>
+</html>

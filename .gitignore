@@ -1,0 +1,11 @@
+.env
+.DS_Store
+
+__pycache__/
+*.pyc
+
+venv/
+.env/
+
+ingest/data/pdf/
+ingest/data/image/
