@@ -42,6 +42,7 @@ def embed_question(question: str) -> list:
     return embedding.tolist()
 
 
+#topK
 def retrieve_similar_chunks(vector: list) -> list:
     """Retrieve top-K similar chunks from vector database."""
     result = vector_index.query(
@@ -95,7 +96,7 @@ def extract_top_scores(reranked_chunks: list) -> list:
         })
     return scores
 
-
+#rerank similarity score
 def rerank_and_select_best(question: str, chunks: list) -> tuple:
     """Rerank chunks and select top final results."""
     rerank_result = rerank_chunks(question, chunks)
