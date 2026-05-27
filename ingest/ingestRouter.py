@@ -16,8 +16,15 @@ from ingest.services.groq_vision import describe_image
 
 logger = logging.getLogger(__name__)
 
-dup_checker = DuplicateChecker()
+duplicate_checker = DuplicateChecker()
 extraction_sessions = {}
+
+
+def get_extraction_session(session_id: str) -> dict:
+    """Retrieve extraction session or raise error."""
+    if session_id not in extraction_sessions:
+        raise ValueError("Invalid session")
+    return extraction_sessions[session_id]
 
 
 def create_extraction_session(image_path: str) -> str:
@@ -37,72 +44,63 @@ def create_extraction_session(image_path: str) -> str:
 
 
 async def step_encode_image(session_id: str) -> dict:
-    """Encode image to base64."""
-    if session_id not in extraction_sessions:
-        return {"success": False, "error": "Invalid session"}
+    """Encode image file to base64 format."""
+    try:
+        session = get_extraction_session(session_id)
+    except ValueError as e:
+        return {"success": False, "error": str(e)}
     
-    sess = extraction_sessions[session_id]
-    result = encode_image_base64(sess["image_path"])
+    encoding_result = encode_image_base64(session["image_path"])
+    if not encoding_result.get("success"):
+        return {"success": False, "error": encoding_result.get("error")}
     
-    if not result.get("success"):
-        return {"success": False, "error": result.get("error")}
-    
-    sess["base64"] = result["base64"]
-    sess["mime_type"] = result["mime_type"]
+    session["base64"] = encoding_result["base64"]
+    session["mime_type"] = encoding_result["mime_type"]
     
     return {
         "success": True,
-        "base64_length": len(result["base64"]),
-        "filename": sess["filename"],
-        "path": sess["image_path"]
+        "base64_length": len(encoding_result["base64"]),
+        "filename": session["filename"],
+        "path": session["image_path"]
     }
 
 
 async def step_get_vision_description(session_id: str) -> dict:
-    """Get vision description from Groq."""
-    if session_id not in extraction_sessions:
-        return {"success": False, "error": "Invalid session"}
+    """Analyze image using Groq Vision API."""
+    try:
+        session = get_extraction_session(session_id)
+    except ValueError as e:
+        return {"success": False, "error": str(e)}
     
-    sess = extraction_sessions[session_id]
+    if not session["base64"]:
+        return {"success": False, "error": "Image not encoded - run step_encode_image first"}
     
-    if not sess["base64"]:
-        return {
-            "success": False,
-            "error": "Image not encoded yet",
-            "debug": {"base64_length": 0, "mime_type": sess.get("mime_type")}
-        }
+    vision_result = describe_image(session["base64"], session["mime_type"])
+    if not vision_result.get("success"):
+        return {"success": False, "error": vision_result.get("error")}
     
-    result = describe_image(sess["base64"], sess["mime_type"])
-    if not result.get("success"):
-        return {
-            "success": False,
-            "error": result.get("error"),
-            "debug": result.get("debug", {})
-        }
-    
-    sess["description"] = result["description"]
+    session["description"] = vision_result["description"]
     return {
         "success": True,
-        "description": result["description"],
-        "chars": len(result["description"]),
-        "model": result.get("model", "groq"),
-        "processing_time_ms": result.get("processing_time_ms", 0),
-        "debug": result.get("debug", {})
+        "description": vision_result["description"],
+        "char_count": len(vision_result["description"]),
+        "model": vision_result.get("model", "groq"),
+        "processing_time_ms": vision_result.get("processing_time_ms", 0)
     }
 
 
 async def step_preview_chunks(session_id: str) -> dict:
-    """Generate and preview chunks."""
-    if session_id not in extraction_sessions:
-        return {"success": False, "error": "Invalid session"}
+    """Split description into chunks and preview."""
+    try:
+        session = get_extraction_session(session_id)
+    except ValueError as e:
+        return {"success": False, "error": str(e)}
     
-    sess = extraction_sessions[session_id]
-    
-    if not sess["description"]:
+    if not session["description"]:
         return {"success": False, "error": "No description available"}
     
-    chunks = chunk_text(sess["description"])
-    sess["chunks"] = chunks
+    chunks = chunk_text(session["description"])
+    session["chunks"] = chunks
     
     return {
         "success": True,
@@ -114,69 +112,69 @@ async def step_preview_chunks(session_id: str) -> dict:
 
 
 async def step_generate_embeddings(session_id: str) -> dict:
-    """Generate embeddings for chunks."""
-    if session_id not in extraction_sessions:
-        return {"success": False, "error": "Invalid session"}
+    """Generate embedding vectors for all chunks."""
+    try:
+        session = get_extraction_session(session_id)
+    except ValueError as e:
+        return {"success": False, "error": str(e)}
     
-    sess = extraction_sessions[session_id]
-    
-    if not sess["chunks"]:
+    if not session["chunks"]:
         return {"success": False, "error": "No chunks to embed"}
     
-    hashes = [dup_checker.generate_hash(c) for c in sess["chunks"]]
-    meta = {
+    chunk_hashes = [duplicate_checker.generate_hash(c) for c in session["chunks"]]
+    metadata = {
         "source": "image",
         "extraction_type": "object",
-        "filename": sess["filename"],
-        "upload_time": sess["upload_time"],
+        "filename": session["filename"],
+        "upload_time": session["upload_time"],
         "description_generated": True,
         "ocr_used": False
     }
     
-    vectors = build_vectors(sess["chunks"], meta, hashes)
-    sess["vectors"] = vectors
+    embedding_vectors = build_vectors(session["chunks"], metadata, chunk_hashes)
+    session["vectors"] = embedding_vectors
     
     return {
         "success": True,
-        "vectors_created": len(vectors),
-        "sample_metadata": vectors[0]["metadata"] if vectors else None
+        "vectors_created": len(embedding_vectors),
+        "sample_metadata": embedding_vectors[0]["metadata"] if embedding_vectors else None
     }
 
 
-async def step_store_in_pinecone(session_id: str, pc_index) -> dict:
-    """Store vectors in Pinecone."""
-    if session_id not in extraction_sessions:
-        return {"success": False, "error": "Invalid session"}
+async def step_store_in_pinecone(session_id: str, vector_index) -> dict:
+    """Persist embedding vectors to Pinecone index."""
+    try:
+        session = get_extraction_session(session_id)
+    except ValueError as e:
+        return {"success": False, "error": str(e)}
     
-    sess = extraction_sessions[session_id]
-    
-    if not sess["vectors"]:
+    if not session["vectors"]:
         return {"success": False, "error": "No vectors to store"}
     
-    written = upsert_vectors(pc_index, sess["vectors"])
+    stored_count = upsert_vectors(vector_index, session["vectors"])
     del extraction_sessions[session_id]
     
     return {
         "success": True,
-        "vectors_written": written,
-        "message": f"Stored {written} vectors"
+        "vectors_written": stored_count
     }
 
 
 async def get_session_state(session_id: str) -> dict:
-    """Get extraction session state."""
-    if session_id not in extraction_sessions:
-        return {"success": False, "error": "Invalid session"}
+    """Get current extraction session progress and state."""
+    try:
+        session = get_extraction_session(session_id)
+    except ValueError as e:
+        return {"success": False, "error": str(e)}
     
-    sess = extraction_sessions[session_id]
     return {
         "success": True,
-        "filename": sess["filename"],
-        "has_base64": sess["base64"] is not None,
-        "has_description": sess["description"] is not None,
-        "chunk_count": len(sess["chunks"]),
-        "vector_count": len(sess["vectors"]),
-        "upload_time": sess["upload_time"]
+        "filename": session["filename"],
+        "has_base64": session["base64"] is not None,
+        "has_description": session["description"] is not None,
+        "chunk_count": len(session["chunks"]),
+        "vector_count": len(session["vectors"]),
+        "upload_time": session["upload_time"]
     }
 
 
@@ -220,22 +218,22 @@ async def ingest_document(source_type: str, source_path: str, pc_index, req_id: 
             "vectors_written": 0
         }, audit
 
-    # check duplicates
-    dup = dup_checker.check_exact_duplicate(text)
-    audit["duplicate"]["incoming_hash"] = dup['hash']
+    # Check for exact duplicates by hash
+    duplicate_check = duplicate_checker.check_exact_duplicate(text)
+    audit["duplicate"]["incoming_hash"] = duplicate_check['hash']
     
-    if dup['is_duplicate']:
+    if duplicate_check['is_duplicate']:
         logger.warning(f"Duplicate rejected: {meta.get('filename', source_path)}")
         audit["duplicate"]["is_duplicate"] = True
         audit["duplicate"]["type"] = "exact_hash_match"
-        audit["duplicate"]["matched_hash"] = dup['hash']
+        audit["duplicate"]["matched_hash"] = duplicate_check['hash']
         return {
             "uploaded": False,
             "duplicate": {
                 "status": True,
                 "type": "exact_hash_match",
-                "incoming_hash": dup['hash'],
-                "existing_hash": dup['hash']
+                "incoming_hash": duplicate_check['hash'],
+                "existing_hash": duplicate_check['hash']
             },
             "chunks": 0,
             "vectors_written": 0
@@ -269,8 +267,8 @@ async def ingest_document(source_type: str, source_path: str, pc_index, req_id: 
         }, audit
 
     # embed
-    hashes = [dup_checker.generate_hash(c) for c in chunks]
-    base_meta = {
+    chunk_hashes = [duplicate_checker.generate_hash(c) for c in chunks]
+    base_metadata = {
         "source": meta['source_type'],
         "filename": meta.get('filename', source_path),
         "upload_time": datetime.utcnow().isoformat(),
@@ -278,20 +276,20 @@ async def ingest_document(source_type: str, source_path: str, pc_index, req_id: 
         "masked": was_masked,
     }
 
-    vectors = build_vectors(chunks, base_meta, hashes)
-    logger.info(f"Built {len(vectors)} vectors")
+    embedding_vectors = build_vectors(chunks, base_metadata, chunk_hashes)
+    logger.info(f"Built {len(embedding_vectors)} vectors")
 
     # store
-    written = upsert_vectors(pc_index, vectors)
-    logger.info(f"Upserted {written} vectors")
+    stored_count = upsert_vectors(pc_index, embedding_vectors)
+    logger.info(f"Upserted {stored_count} vectors")
 
     audit["pinecone"] = {
-        "vectors_written": written,
-        "status": "success" if written > 0 else "failed"
+        "vectors_written": stored_count,
+        "status": "success" if stored_count > 0 else "failed"
     }
 
-    if vectors:
-        audit["metadata_sample"] = vectors[0]["metadata"]
+    if embedding_vectors:
+        audit["metadata_sample"] = embedding_vectors[0]["metadata"]
 
     return {
         "uploaded": True,
@@ -307,25 +305,25 @@ async def ingest_document(source_type: str, source_path: str, pc_index, req_id: 
         },
         "chunking": {
             "total_chunks": len(chunks),
-            "sample_chunk_ids": [vectors[i]["metadata"].get("chunk_id") for i in range(min(3, len(vectors)))]
+            "sample_chunk_ids": [embedding_vectors[i]["metadata"].get("chunk_id") for i in range(min(3, len(embedding_vectors)))]
         },
         "metadata": {
             "filename": meta.get('filename', source_path),
             "source": meta.get('source_type', source_type),
             "upload_time": datetime.utcnow().isoformat(),
             "masked": was_masked,
-            "hash": dup['hash'],
-            "chunk_ids": [v["metadata"].get("chunk_id") for v in vectors],
-            "chunk_indexes": [v["metadata"].get("chunk_index") for v in vectors]
+            "hash": duplicate_check['hash'],
+            "chunk_ids": [v["metadata"].get("chunk_id") for v in embedding_vectors],
+            "chunk_indexes": [v["metadata"].get("chunk_index") for v in embedding_vectors]
         },
         "pinecone": {
             "inserted": True,
-            "vectors_written": written,
+            "vectors_written": stored_count,
             "namespace": "default",
-            "vector_ids": [v["id"] for v in vectors]
+            "vector_ids": [v["id"] for v in embedding_vectors]
         },
         "chunks": len(chunks),
-        "vectors_written": written
+        "vectors_written": stored_count
     }, audit
 
 
@@ -341,10 +339,9 @@ async def ingest_image_objects(image_path: str, pc_index, req_id: str = None) ->
 
     filename = Path(image_path).name
 
-    # encode
-    res = encode_image_base64(image_path)
-    if not res.get("success"):
-        audit["error"] = res.get("error", "Encoding failed")
+    encoding_result = encode_image_base64(image_path)
+    if not encoding_result.get("success"):
+        audit["error"] = encoding_result.get("error", "Encoding failed")
         return {
             "uploaded": False,
             "error": "Image conversion failed",
@@ -352,15 +349,14 @@ async def ingest_image_objects(image_path: str, pc_index, req_id: str = None) ->
             "extraction_type": "object"
         }, audit
 
-    b64 = res["base64"]
-    mime = res["mime_type"]
-    audit["vision"]["base64_length"] = len(b64)
-    logger.info(f"Image encoded: {len(b64)} chars")
+    base64_str = encoding_result["base64"]
+    mime_type = encoding_result["mime_type"]
+    audit["vision"]["base64_length"] = len(base64_str)
+    logger.info(f"Image encoded: {len(base64_str)} chars")
 
-    # describe
-    res = describe_image(b64, mime)
-    if not res.get("success"):
-        audit["error"] = res.get("error", "Vision analysis failed")
+    vision_result = describe_image(base64_str, mime_type)
+    if not vision_result.get("success"):
+        audit["error"] = vision_result.get("error", "Vision analysis failed")
         return {
             "uploaded": False,
             "error": "Vision description failed",
@@ -368,14 +364,13 @@ async def ingest_image_objects(image_path: str, pc_index, req_id: str = None) ->
             "extraction_type": "object"
         }, audit
 
-    desc = res["description"]
-    audit["vision"]["processing_time_ms"] = res.get("processing_time_ms", 0)
-    audit["vision"]["model"] = res.get("model", "unknown")
-    audit["extraction"]["chars"] = len(desc)
-    logger.info(f"Description: {len(desc)} chars")
+    description = vision_result["description"]
+    audit["vision"]["processing_time_ms"] = vision_result.get("processing_time_ms", 0)
+    audit["vision"]["model"] = vision_result.get("model", "unknown")
+    audit["extraction"]["chars"] = len(description)
+    logger.info(f"Description: {len(description)} chars")
 
-    # chunk
-    chunks = chunk_text(desc)
+    chunks = chunk_text(description)
     logger.info(f"Generated {len(chunks)} chunks")
 
     audit["chunking"] = {
@@ -394,110 +389,118 @@ async def ingest_image_objects(image_path: str, pc_index, req_id: str = None) ->
             "extraction_type": "object"
         }, audit
 
-    # embed
-    hashes = [dup_checker.generate_hash(c) for c in chunks]
+    chunk_hashes = [duplicate_checker.generate_hash(c) for c in chunks]
     upload_time = datetime.utcnow().isoformat()
-    base_meta = {
+    base_metadata = {
         "source": "image",
         "extraction_type": "object",
         "filename": filename,
         "upload_time": upload_time,
         "description_generated": True,
-        "llm": res.get("model", "groq"),
+        "llm": vision_result.get("model", "groq"),
         "ocr_used": False
     }
 
-    vectors = build_vectors(chunks, base_meta, hashes)
-    logger.info(f"Built {len(vectors)} vectors")
+    embedding_vectors = build_vectors(chunks, base_metadata, chunk_hashes)
+    logger.info(f"Built {len(embedding_vectors)} vectors")
 
-    # store
-    written = upsert_vectors(pc_index, vectors)
-    logger.info(f"Upserted {written} vectors")
+    stored_count = upsert_vectors(pc_index, embedding_vectors)
+    logger.info(f"Upserted {stored_count} vectors")
 
     audit["pinecone"] = {
-        "vectors_written": written,
-        "status": "success" if written > 0 else "failed"
+        "vectors_written": stored_count,
+        "status": "success" if stored_count > 0 else "failed"
     }
 
-    if vectors:
-        audit["metadata_sample"] = vectors[0]["metadata"]
+    if embedding_vectors:
+        audit["metadata_sample"] = embedding_vectors[0]["metadata"]
 
+    description_preview = description[:200] + "…" if len(description) > 200 else description
     return {
         "uploaded": True,
         "extraction_type": "object",
         "description_generated": True,
-        "description_preview": desc[:200] + "…" if len(desc) > 200 else desc,
+        "description_preview": description_preview,
         "chunks": len(chunks),
-        "vectors_written": written,
+        "vectors_written": stored_count,
         "processing_time_ms": audit["vision"].get("processing_time_ms", 0),
         "upload": {"saved": True, "location": image_path, "filename": filename},
-        "extraction": {"chars": len(desc), "ocr_used": False},
+        "extraction": {"chars": len(description), "ocr_used": False},
         "vision": audit["vision"],
         "chunking": audit["chunking"],
         "pinecone": {
             "inserted": True,
-            "vectors_written": written,
+            "vectors_written": stored_count,
             "namespace": "default"
         }
     }, audit
 
 
 async def extract_pdf_live_with_vision(pdf_path: str) -> dict:
-    """Live PDF extraction with image descriptions via Groq Vision."""
-    pages_data = []
-    total_pages = 0
-    images_count = 0
+    """Live PDF extraction with Groq Vision analysis of embedded images."""
+    extracted_pages = []
+    total_page_count = 0
+    analyzed_image_count = 0
     
     try:
-        for page_result in extract_pdf_live(pdf_path):
-            total_pages = page_result.get("total_pages", 0)
-            page_num = page_result.get("page", 0)
-            text = page_result.get("text", "")
-            images = page_result.get("images", [])
+        for page_data in extract_pdf_live(pdf_path):
+            total_page_count = page_data.get("total_pages", 0)
+            page_number = page_data.get("page", 0)
+            page_text = page_data.get("text", "")
+            page_images = page_data.get("images", [])
             
-            page_obj = {
-                "page": page_num,
-                "text": text,
+            page_result = {
+                "page": page_number,
+                "text": page_text,
                 "images": [],
-                "total_pages": total_pages
+                "total_pages": total_page_count
             }
             
-            # Process images with Vision API
-            for img in images:
+            for image_data in page_images:
                 try:
-                    base64_str = img.get("base64", "")
-                    if base64_str and len(base64_str) > 500:
-                        img_desc = await describe_image(
-                            base64_str,
-                            img.get("mime_type", "image/png")
-                        )
-                        
-                        if img_desc.get("success"):
-                            images_count += 1
-                            page_obj["images"].append({
-                                "index": len(page_obj["images"]) + 1,
-                                "dimensions": f"{img.get('width', 0)}x{img.get('height', 0)}",
-                                "description": img_desc.get("description", ""),
-                                "model": img_desc.get("model", "groq"),
-                                "success": True
-                            })
-                        else:
-                            logger.debug(f"Vision API failed for page {page_num}: {img_desc.get('error', 'Unknown')}")
+                    base64_content = image_data.get("base64", "")
+                    if not (base64_content and len(base64_content) > 500):
+                        continue
+                    
+                    vision_response = await describe_image(
+                        base64_content,
+                        image_data.get("mime_type", "image/png")
+                    )
+                    
+                    if not vision_response.get("success"):
+                        logger.debug(f"Vision analysis failed: {vision_response.get('error', 'Unknown')}")
+                        continue
+                    
+                    analyzed_image_count += 1
+                    image_width = image_data.get('width', 0)
+                    image_height = image_data.get('height', 0)
+                    
+                    page_result["images"].append({
+                        "index": len(page_result["images"]) + 1,
+                        "dimensions": f"{image_width}x{image_height}",
+                        "description": vision_response.get("description", ""),
+                        "model": vision_response.get("model", "groq"),
+                        "success": True
+                    })
                     
                 except Exception as e:
-                    logger.debug(f"Image processing error on page {page_num}: {e}")
+                    logger.debug(f"Image processing error on page {page_number}: {e}")
+                    continue
             
-            pages_data.append(page_obj)
-            logger.info(f"Extracted page {page_num}/{total_pages} - text:{len(text)} chars, images:{len(page_obj['images'])}")
+            extracted_pages.append(page_result)
+            logger.info(
+                f"Extracted page {page_number}/{total_page_count}: "
+                f"{len(page_text)} text chars, {len(page_result['images'])} images analyzed"
+            )
         
         filename = Path(pdf_path).name
         
         return {
             "success": True,
             "filename": filename,
-            "pages": pages_data,
-            "total_pages": total_pages,
-            "total_images": images_count,
+            "pages": extracted_pages,
+            "total_pages": total_page_count,
+            "total_images": analyzed_image_count,
             "upload_time": datetime.utcnow().isoformat()
         }
     
