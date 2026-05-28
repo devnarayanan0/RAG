@@ -22,6 +22,7 @@ from ingest.ingestRouter import (
     get_session_state,
     extract_pdf_live_with_vision
 )
+from ingest.services.sync_service import sync_folder_to_vector_db
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -100,6 +101,9 @@ async def upload(
     req_id = str(uuid.uuid4())
     start_time = time.time()
     
+    sync_result = sync_folder_to_vector_db(index)
+    logger.info(f"Folder sync: {sync_result['deleted_count']} deleted, {sync_result['new_files_count']} new")
+    
     log = {
         "request_id": req_id,
         "source_type": source_type,
@@ -110,6 +114,7 @@ async def upload(
         "duplicate": {},
         "pinecone": {},
         "metadata_sample": None,
+        "sync": sync_result,
         "processing_time_ms": 0,
         "status": "pending"
     }

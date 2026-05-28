@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 import uuid
+import os
 
 from ingest.extractor.pdf import process_pdf, extract_pdf_live
 from ingest.extractor.docx import process_docx
@@ -13,11 +14,22 @@ from ingest.services.duplicate_service import DuplicateChecker
 from ingest.services.pinecone_service import build_vectors, upsert_vectors
 from ingest.services.image_encoder import encode_image_base64
 from ingest.services.groq_vision import describe_image
+from ingest.services.sync_service import sync_folder_to_vector_db, is_file_already_indexed
 
 logger = logging.getLogger(__name__)
+BASE_DATA_DIR = "ingest/data"
 
 duplicate_checker = DuplicateChecker()
 extraction_sessions = {}
+
+
+def get_relative_source_path(absolute_path: str) -> str:
+    """Convert absolute file path to relative source path from data/."""
+    try:
+        rel = Path(absolute_path).relative_to(BASE_DATA_DIR)
+        return str(rel)
+    except (ValueError, TypeError):
+        return absolute_path
 
 
 def get_extraction_session(session_id: str) -> dict:
@@ -185,8 +197,27 @@ async def ingest_document(source_type: str, source_path: str, pc_index, req_id: 
         "chunking": {},
         "duplicate": {},
         "pinecone": {},
-        "metadata_sample": None
+        "metadata_sample": None,
+        "sync": {}
     }
+
+    source_rel = get_relative_source_path(source_path)
+
+    if source_type != 'url' and is_file_already_indexed(source_rel, pc_index):
+        logger.info(f"File already indexed: {source_rel}")
+        audit["duplicate"]["is_duplicate"] = True
+        audit["duplicate"]["type"] = "already_indexed"
+        audit["duplicate"]["source"] = source_rel
+        return {
+            "uploaded": False,
+            "duplicate": {
+                "status": True,
+                "type": "already_indexed",
+                "source": source_rel
+            },
+            "chunks": 0,
+            "vectors_written": 0
+        }, audit
 
     # extract
     if source_type == 'pdf':
@@ -269,7 +300,8 @@ async def ingest_document(source_type: str, source_path: str, pc_index, req_id: 
     # embed
     chunk_hashes = [duplicate_checker.generate_hash(c) for c in chunks]
     base_metadata = {
-        "source": meta['source_type'],
+        "source": source_rel,
+        "source_type": meta.get('source_type', source_type),
         "filename": meta.get('filename', source_path),
         "upload_time": datetime.utcnow().isoformat(),
         "ocr_used": meta.get('ocr_used', False),
