@@ -30,22 +30,3 @@ def process_docx(path: str) -> dict:
             "path": path
         }
     }
-
-    text = extract_docx(
-        path
-    )
-
-    chunks = chunk_text(
-        text
-    )
-
-    source = (
-        path
-        .split("/")[-1]
-        .split(".")[0]
-    )
-
-    return create_vectors(
-        chunks,
-        source
-    )

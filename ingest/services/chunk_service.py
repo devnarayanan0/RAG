@@ -1,26 +1,28 @@
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 import logging
+from ingest.services.semantic_chunk import chunk_document
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 800
-CHUNK_OVERLAP = 150
 
 def chunk_text(text: str) -> list[str]:
-    """Split text into chunks with overlap."""
+    """
+    Split text into semantic chunks based on meaning and context.
+    
+    Uses sentence embeddings to group related content together,
+    ensuring chunks represent complete topics or ideas.
+    
+    Args:
+        text: Input text to chunk
+    
+    Returns:
+        List of semantic chunks
+    """
     if not text or not text.strip():
         return []
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=CHUNK_SIZE,
-        chunk_overlap=CHUNK_OVERLAP,
-        separators=["\n\n", "\n", ". ", " ", ""]
-    )
-
-    chunks = splitter.split_text(text)
+    chunks = chunk_document(text)
     
-    # Filter empty chunks
-    chunks = [c.strip() for c in chunks if c.strip()]
-
-    logger.info(f"Generated {len(chunks)} chunks")
+    if chunks:
+        logger.info(f"Generated {len(chunks)} semantic chunks")
+    
     return chunks
