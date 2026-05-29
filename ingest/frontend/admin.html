@@ -643,6 +643,34 @@ input[type="url"]::placeholder { color: var(--ink3); }
         <div class="audit-panel" id="url-audit"></div>
       </div>
 
+      <!-- Sync Section -->
+      <div style="margin-top: 40px; padding-top: 28px; border-top: 1px solid rgba(255,255,255,.08);">
+        <div class="page-header">
+          <h1>Synchronize Knowledge</h1>
+          <p>Ingest all new files and remove deleted files from Pinecone</p>
+        </div>
+        
+        <button class="upload-btn" onclick="startSync()" id="sync-btn">
+          <i class="ti ti-refresh"></i> Sync With Vector DB
+        </button>
+        
+        <div class="status" id="sync-status">
+          <div class="status-header" id="sync-status-header"><div class="spinner"></div><span>Syncing…</span></div>
+          <div class="status-body" id="sync-status-body"></div>
+        </div>
+        
+        <div class="sync-summary" id="sync-summary" style="display: none; margin-top: 18px;">
+          <div class="summary">
+            <div class="sum-item"><div class="sum-label">New Files</div><div class="sum-value" id="sync-new">0</div></div>
+            <div class="sum-item"><div class="sum-label">Skipped</div><div class="sum-value" id="sync-skipped">0</div></div>
+            <div class="sum-item"><div class="sum-label">Deleted</div><div class="sum-value" id="sync-deleted">0</div></div>
+            <div class="sum-item"><div class="sum-label">Chunks Added</div><div class="sum-value" id="sync-chunks">0</div></div>
+            <div class="sum-item"><div class="sum-label">Vectors Added</div><div class="sum-value" id="sync-vectors">0</div></div>
+            <div class="sum-item"><div class="sum-label">Time</div><div class="sum-value" id="sync-time">0ms</div></div>
+          </div>
+        </div>
+      </div>
+
     </div><!-- /main -->
 
     <!-- Right: vertical menu -->
@@ -737,29 +765,30 @@ async function upload(type) {
 
   statusEl.classList.add('show');
   headerEl.className = 'status-header loading';
-  headerEl.innerHTML = '<div class="spinner"></div><span>Processing…</span>';
-  bodyEl.textContent = 'Uploading and extracting content…';
+  headerEl.innerHTML = '<div class="spinner"></div><span>Saving…</span>';
+  bodyEl.textContent = 'Uploading file…';
   auditEl.classList.remove('show');
 
   try {
     const res  = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
     const data = await res.json();
 
-    auditEl.classList.add('show');
-    auditEl.innerHTML = buildAudit(data);
-
-    if (data.uploaded || data.message) {
+    if (data.success) {
       headerEl.className = 'status-header success';
-      headerEl.innerHTML = '<i class="ti ti-circle-check"></i><span>Ingestion successful</span>';
-      bodyEl.innerHTML = buildSummary(data);
+      headerEl.innerHTML = '<i class="ti ti-circle-check"></i><span>File saved successfully</span>';
+      bodyEl.innerHTML = `
+        <div style="padding: 10px 0; line-height: 1.8;">
+          <strong>${data.filename || data.filepath}</strong><br>
+          <span style="color: var(--ink3); font-size: 12px;">${data.size_bytes ? (data.size_bytes / 1024).toFixed(1) + ' KB' : ''}</span><br>
+          <br>
+          <span style="color: var(--accent);">✓ File saved to data folder</span><br>
+          <span style="color: var(--ink2); font-size: 12px; margin-top: 8px; display: block;">Click "Sync With Vector DB" to ingest this file</span>
+        </div>
+      `;
     } else if (data.error) {
       headerEl.className = 'status-header error';
       headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Error</span>';
       bodyEl.textContent = data.error;
-    } else if (data.duplicate) {
-      headerEl.className = 'status-header error';
-      headerEl.innerHTML = '<i class="ti ti-alert-triangle"></i><span>Duplicate rejected</span>';
-      bodyEl.textContent = `Reason: ${data.reason || 'Duplicate detected'}`;
     } else {
       headerEl.className = 'status-header error';
       headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Failed</span>';
@@ -1442,6 +1471,62 @@ async function proceedPdfToChunking(dataJson) {
 
 function continueToPinecone() {
   alert('Ready to embed & store in Pinecone!\n\nThis will chunk text and store vectors. Proceed?');
+}
+
+async function startSync() {
+  const statusEl = document.getElementById('sync-status');
+  const headerEl = document.getElementById('sync-status-header');
+  const bodyEl   = document.getElementById('sync-status-body');
+  const summaryEl = document.getElementById('sync-summary');
+  const syncBtn = document.getElementById('sync-btn');
+  
+  syncBtn.disabled = true;
+  statusEl.classList.add('show');
+  headerEl.className = 'status-header loading';
+  headerEl.innerHTML = '<div class="spinner"></div><span>Syncing…</span>';
+  bodyEl.textContent = 'Scanning files and ingesting new documents…';
+  summaryEl.style.display = 'none';
+  
+  try {
+    const res = await fetch(`${API_URL}/sync`, { method: 'POST' });
+    const data = await res.json();
+    
+    if (data.success) {
+      headerEl.className = 'status-header success';
+      headerEl.innerHTML = '<i class="ti ti-circle-check"></i><span>Sync complete</span>';
+      bodyEl.innerHTML = `
+        <div style="padding: 10px 0;">
+          <strong>Synchronization Results:</strong><br><br>
+          <strong style="color: var(--green);">✓ New Files Ingested:</strong> ${data.new_files_ingested}<br>
+          <strong style="color: var(--ink2);">⊙ Existing Files Skipped:</strong> ${data.existing_files_skipped}<br>
+          <strong style="color: var(--red);">✕ Deleted Files Removed:</strong> ${data.deleted_files_removed}<br><br>
+          <strong>Vectors Added:</strong><br>
+          Chunks: ${data.chunks_added}<br>
+          Vectors: ${data.vectors_added}<br><br>
+          <strong style="color: var(--ink3); font-size: 12px;">Time: ${data.processing_time_ms}ms</strong>
+          ${data.errors && data.errors.length > 0 ? `<br><br><strong style="color: var(--red);">⚠ Errors:</strong><br>${data.errors.map(e => '• ' + e).join('<br>')}` : ''}
+        </div>
+      `;
+      
+      document.getElementById('sync-new').textContent = data.new_files_ingested;
+      document.getElementById('sync-skipped').textContent = data.existing_files_skipped;
+      document.getElementById('sync-deleted').textContent = data.deleted_files_removed;
+      document.getElementById('sync-chunks').textContent = data.chunks_added;
+      document.getElementById('sync-vectors').textContent = data.vectors_added;
+      document.getElementById('sync-time').textContent = data.processing_time_ms + 'ms';
+      summaryEl.style.display = 'block';
+    } else {
+      headerEl.className = 'status-header error';
+      headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Sync failed</span>';
+      bodyEl.textContent = data.error || 'Unknown error occurred';
+    }
+  } catch (err) {
+    headerEl.className = 'status-header error';
+    headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Connection error</span>';
+    bodyEl.textContent = `Failed to connect: ${err.message}`;
+  } finally {
+    syncBtn.disabled = false;
+  }
 }
 
 </script>

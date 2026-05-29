@@ -22,7 +22,14 @@ from ingest.ingestRouter import (
     get_session_state,
     extract_pdf_live_with_vision
 )
-from ingest.services.sync_service import sync_folder_to_vector_db
+from ingest.services.sync_service import (
+    sync_folder_to_vector_db,
+    scan_local_files,
+    fetch_existing_sources,
+    detect_new_files,
+    detect_deleted_files,
+    delete_missing_vectors,
+)
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -97,12 +104,9 @@ async def upload(
     url: str | None = Form(None),
     file: UploadFile | None = File(None),
 ):
-    """Upload and ingest document."""
+    """Upload and save document (does not ingest or sync)."""
     req_id = str(uuid.uuid4())
     start_time = time.time()
-    
-    sync_result = sync_folder_to_vector_db(index)
-    logger.info(f"Folder sync: {sync_result['deleted_count']} deleted, {sync_result['new_files_count']} new")
     
     log = {
         "request_id": req_id,
@@ -114,7 +118,6 @@ async def upload(
         "duplicate": {},
         "pinecone": {},
         "metadata_sample": None,
-        "sync": sync_result,
         "processing_time_ms": 0,
         "status": "pending"
     }
@@ -313,3 +316,78 @@ async def get_image_session(session_id: str):
     except Exception as e:
         logger.error(f"Session error: {e}")
         return {"success": False, "error": str(e)}
+
+
+@app.post("/sync", tags=["Synchronization"])
+async def sync():
+    """
+    Synchronize local files with Pinecone.
+    
+    Scans data folders, detects new/deleted files,
+    ingests new files, and removes deleted files from Pinecone.
+    """
+    sync_id = str(uuid.uuid4())
+    start_time = time.time()
+    
+    logger.info(f"[{sync_id}] Starting sync...")
+    
+    try:
+        # Scan and detect
+        local_files = scan_local_files()
+        existing_sources = fetch_existing_sources(index)
+        
+        new_files = detect_new_files(local_files, existing_sources)
+        deleted_files = detect_deleted_files(local_files, existing_sources)
+        existing_files = local_files - new_files
+        
+        logger.info(f"[{sync_id}] New: {len(new_files)}, Existing: {len(existing_files)}, Deleted: {len(deleted_files)}")
+        
+        # Process deletions
+        deleted_count = delete_missing_vectors(index, deleted_files) if deleted_files else 0
+        
+        # Process new files
+        chunks_added = 0
+        vectors_added = 0
+        ingestion_errors = []
+        
+        for source_path in new_files:
+            try:
+                parts = source_path.split("/")
+                source_type = parts[0]
+                
+                logger.info(f"[{sync_id}] Ingesting: {source_path}")
+                
+                result, audit = await ingest_document(source_type, source_path, index, sync_id)
+                
+                if audit.get("pinecone", {}).get("status") == "success":
+                    chunks_added += audit.get("chunking", {}).get("total_chunks", 0)
+                    vectors_added += audit.get("pinecone", {}).get("vectors_written", 0)
+                else:
+                    ingestion_errors.append(f"{source_path}: {result}")
+            
+            except Exception as e:
+                logger.error(f"[{sync_id}] Ingestion failed for {source_path}: {e}")
+                ingestion_errors.append(f"{source_path}: {str(e)}")
+        
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        
+        return {
+            "success": True,
+            "sync_id": sync_id,
+            "new_files_ingested": len(new_files),
+            "existing_files_skipped": len(existing_files),
+            "deleted_files_removed": deleted_count,
+            "chunks_added": chunks_added,
+            "vectors_added": vectors_added,
+            "errors": ingestion_errors if ingestion_errors else None,
+            "processing_time_ms": elapsed_ms
+        }
+    
+    except Exception as e:
+        logger.error(f"[{sync_id}] Sync failed: {e}")
+        return {
+            "success": False,
+            "sync_id": sync_id,
+            "error": str(e),
+            "processing_time_ms": int((time.time() - start_time) * 1000)
+        }

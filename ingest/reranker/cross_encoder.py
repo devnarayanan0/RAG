@@ -1,18 +1,17 @@
 import logging
 from sentence_transformers import CrossEncoder
-
 logger = logging.getLogger(__name__)
-
 CROSS_ENCODER_MODEL = "cross-encoder/mmarco-MiniLMv2-L12-H384-v1"
-
+#
+#
 try:
     reranker_model = CrossEncoder(CROSS_ENCODER_MODEL)
     logger.info(f"✓ Cross Encoder loaded: {CROSS_ENCODER_MODEL}")
 except Exception as e:
     logger.error(f"Failed to load Cross Encoder: {e}")
     reranker_model = None
-
-
+#
+#
 def rerank_chunks(query: str, chunks: list) -> dict:
     """
     Rerank retrieved chunks using BERT cross-encoder.
