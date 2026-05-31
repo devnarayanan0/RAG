@@ -43,6 +43,9 @@ audit_logs = deque(maxlen=100)
 audit_index = {}
 BASE_DATA = "ingest/data"
 
+# Chunking strategy storage (global preference)
+chunking_config = {"strategy": "semantic"}  # "semantic", "recursive", "simple"
+
 def query_pinecone_for_hash(hash_val: str) -> dict:
     """Query Pinecone for vectors matching a hash."""
     try:
@@ -83,6 +86,35 @@ def health():
     return {"status": "healthy"}
 
 
+@app.get("/config/chunking", tags=["Configuration"])
+def get_chunking_config():
+    """Get current chunking strategy configuration."""
+    return {
+        "current_strategy": chunking_config.get("strategy", "semantic"),
+        "available_strategies": {
+            "semantic": {
+                "name": "Semantic Chunking",
+                "description": "Groups sentences by semantic similarity (meaning). Best for quality.",
+                "min_chunk_size": 50,
+                "max_chunk_size": 1000,
+                "threshold": 0.7
+            },
+            "recursive": {
+                "name": "Recursive Text Splitter",
+                "description": "Hierarchical splitting by delimiters (sentence → line → word). Balanced approach.",
+                "chunk_size": 500,
+                "overlap": 50
+            },
+            "simple": {
+                "name": "Simple Chunker",
+                "description": "Fixed-size word-based chunks. Fastest option.",
+                "chunk_size": 300,
+                "overlap": 50
+            }
+        }
+    }
+
+
 @app.get("/audit/{req_id}", tags=["Audit"])
 def get_audit(req_id: str):
     """Get audit log for request."""
@@ -101,10 +133,13 @@ def list_audits():
 async def upload(
     source_type: str = Form(...),
     extraction_type: str = Form(default="text"),
+    chunking_strategy: str = Form(default="semantic"),
     url: str | None = Form(None),
     file: UploadFile | None = File(None),
 ):
     """Upload and save document (does not ingest or sync)."""
+    # Store chunking strategy preference
+    chunking_config["strategy"] = chunking_strategy
     req_id = str(uuid.uuid4())
     start_time = time.time()
     
@@ -319,13 +354,18 @@ async def get_image_session(session_id: str):
 
 
 @app.post("/sync", tags=["Synchronization"])
-async def sync():
+async def sync(chunking_strategy: str = Form(default=None)):
     """
     Synchronize local files with Pinecone.
     
     Scans data folders, detects new/deleted files,
     ingests new files, and removes deleted files from Pinecone.
+    
+    Args:
+        chunking_strategy: Override global strategy ("semantic", "recursive", "simple")
     """
+    # Use provided strategy or fall back to stored preference
+    strategy = (chunking_strategy or chunking_config.get("strategy", "semantic")).lower().strip()
     sync_id = str(uuid.uuid4())
     start_time = time.time()
     
@@ -357,7 +397,7 @@ async def sync():
                 
                 logger.info(f"[{sync_id}] Ingesting: {source_path}")
                 
-                result, audit = await ingest_document(source_type, source_path, index, sync_id)
+                result, audit = await ingest_document(source_type, source_path, index, sync_id, chunking_strategy=strategy)
                 
                 if audit.get("pinecone", {}).get("status") == "success":
                     chunks_added += audit.get("chunking", {}).get("total_chunks", 0)

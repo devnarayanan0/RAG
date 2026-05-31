@@ -190,7 +190,7 @@ async def get_session_state(session_id: str) -> dict:
     }
 
 
-async def ingest_document(source_type: str, source_path: str, pc_index, req_id: str = None) -> tuple:
+async def ingest_document(source_type: str, source_path: str, pc_index, req_id: str = None, chunking_strategy: str = "semantic") -> tuple:
     """Ingest document through extraction, chunking, embedding pipeline."""
     audit = {
         "extraction": {},
@@ -278,13 +278,12 @@ async def ingest_document(source_type: str, source_path: str, pc_index, req_id: 
     audit["extraction"]["masked"] = was_masked
 
     # chunk
-    chunks = chunk_text(text)
-    logger.info(f"Generated {len(chunks)} chunks")
+    chunks = chunk_text(text, strategy=chunking_strategy)
+    logger.info(f"Generated {len(chunks)} chunks using {chunking_strategy} strategy")
 
     audit["chunking"] = {
         "count": len(chunks),
-        "chunk_size": 800,
-        "overlap": 150,
+        "strategy": chunking_strategy,
         "samples": chunks[:3] if chunks else []
     }
 

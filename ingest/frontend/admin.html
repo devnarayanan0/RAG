@@ -650,6 +650,17 @@ input[type="url"]::placeholder { color: var(--ink3); }
           <p>Ingest all new files and remove deleted files from Pinecone</p>
         </div>
         
+        <!-- Chunking Strategy Selector -->
+        <div class="form-group">
+          <label class="label">Chunking Strategy</label>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;" id="strategy-options">
+            <!-- Populated by JavaScript -->
+          </div>
+          <div style="padding: 12px; background: rgba(240,90,40,.08); border: 1px solid rgba(240,90,40,.15); border-radius: 8px; font-size: 12px; color: var(--ink2); display: none;" id="strategy-description">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+        
         <button class="upload-btn" onclick="startSync()" id="sync-btn">
           <i class="ti ti-refresh"></i> Sync With Vector DB
         </button>
@@ -696,6 +707,68 @@ input[type="url"]::placeholder { color: var(--ink3); }
 <script>
 const API_URL = 'http://127.0.0.1:8001';
 const selectedFiles = {};
+let selectedStrategy = 'semantic';
+let strategyConfig = {};
+
+// Load chunking strategies on page load
+async function loadChunkingStrategies() {
+  try {
+    const res = await fetch(`${API_URL}/config/chunking`);
+    const data = await res.json();
+    strategyConfig = data.available_strategies;
+    selectedStrategy = data.current_strategy;
+    renderStrategySelector();
+  } catch (err) {
+    console.error('Failed to load chunking strategies:', err);
+  }
+}
+
+function renderStrategySelector() {
+  const container = document.getElementById('strategy-options');
+  const descEl = document.getElementById('strategy-description');
+  
+  container.innerHTML = '';
+  
+  Object.entries(strategyConfig).forEach(([key, config]) => {
+    const isSelected = key === selectedStrategy;
+    const btn = document.createElement('div');
+    btn.style.cssText = `
+      display: flex; align-items: center; gap: 8px; padding: 12px;
+      background: ${isSelected ? 'rgba(240,90,40,.15)' : 'rgba(255,255,255,.04)'};
+      border: 1px solid ${isSelected ? 'rgba(240,90,40,.3)' : 'rgba(255,255,255,.08)'};
+      border-radius: 8px; cursor: pointer; transition: all 0.2s ease;
+    `;
+    btn.onmouseover = () => !isSelected && (btn.style.background = 'rgba(255,255,255,.06)');
+    btn.onmouseout = () => !isSelected && (btn.style.background = 'rgba(255,255,255,.04)');
+    btn.onclick = () => selectStrategy(key);
+    
+    btn.innerHTML = `
+      <input type="radio" name="chunking-strategy" value="${key}" ${isSelected ? 'checked' : ''} style="cursor: pointer;" />
+      <label style="cursor: pointer; flex: 1; margin: 0; font-size: 13px; font-weight: 500;">
+        <div style="color: var(--ink);">${config.name}</div>
+        <div style="font-size: 11px; color: var(--ink3); margin-top: 2px;">${config.description}</div>
+      </label>
+    `;
+    container.appendChild(btn);
+  });
+}
+
+function selectStrategy(strategy) {
+  selectedStrategy = strategy;
+  const config = strategyConfig[strategy];
+  const descEl = document.getElementById('strategy-description');
+  
+  descEl.style.display = 'block';
+  descEl.innerHTML = `
+    <strong>${config.name}</strong><br>
+    ${config.description}
+  `;
+  
+  renderStrategySelector();
+}
+
+// Initialize on load
+window.addEventListener('DOMContentLoaded', loadChunkingStrategies);
 
 document.querySelectorAll('.menu-item').forEach(item => {
   item.addEventListener('click', () => {
@@ -753,6 +826,7 @@ async function upload(type) {
   const formData = new FormData();
   formData.append('source_type', type);
   formData.append('extraction_type', type === 'image' ? 'text' : 'default');
+  formData.append('chunking_strategy', selectedStrategy);
 
   if (type === 'url') {
     const url = document.getElementById('url-input').value.trim();
@@ -766,7 +840,7 @@ async function upload(type) {
   statusEl.classList.add('show');
   headerEl.className = 'status-header loading';
   headerEl.innerHTML = '<div class="spinner"></div><span>Saving…</span>';
-  bodyEl.textContent = 'Uploading file…';
+  bodyEl.textContent = `Uploading file with ${selectedStrategy} chunking strategy…`;
   auditEl.classList.remove('show');
 
   try {
@@ -1484,11 +1558,17 @@ async function startSync() {
   statusEl.classList.add('show');
   headerEl.className = 'status-header loading';
   headerEl.innerHTML = '<div class="spinner"></div><span>Syncing…</span>';
-  bodyEl.textContent = 'Scanning files and ingesting new documents…';
+  bodyEl.textContent = `Syncing with ${selectedStrategy} chunking strategy…`;
   summaryEl.style.display = 'none';
   
   try {
-    const res = await fetch(`${API_URL}/sync`, { method: 'POST' });
+    const formData = new FormData();
+    formData.append('chunking_strategy', selectedStrategy);
+    
+    const res = await fetch(`${API_URL}/sync`, { 
+      method: 'POST',
+      body: formData
+    });
     const data = await res.json();
     
     if (data.success) {
@@ -1496,7 +1576,7 @@ async function startSync() {
       headerEl.innerHTML = '<i class="ti ti-circle-check"></i><span>Sync complete</span>';
       bodyEl.innerHTML = `
         <div style="padding: 10px 0;">
-          <strong>Synchronization Results:</strong><br><br>
+          <strong>Synchronization Results (${selectedStrategy} chunking):</strong><br><br>
           <strong style="color: var(--green);">✓ New Files Ingested:</strong> ${data.new_files_ingested}<br>
           <strong style="color: var(--ink2);">⊙ Existing Files Skipped:</strong> ${data.existing_files_skipped}<br>
           <strong style="color: var(--red);">✕ Deleted Files Removed:</strong> ${data.deleted_files_removed}<br><br>
