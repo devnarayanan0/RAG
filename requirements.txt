@@ -9,3 +9,11 @@ groq==1.1.2
 numpy>=1.24.0,<2.0
 torch>=2.1.0
 transformers>=4.40.0
+
+# LangChain & Integrations (NEW - langdev branch)
+langchain==0.1.14
+langchain-core==0.1.30
+langchain-community==0.0.22
+langchain-groq==0.1.0
+langchain-huggingface==0.0.3
+langchain-pinecone==0.0.4
