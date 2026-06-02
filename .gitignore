@@ -7,5 +7,4 @@ __pycache__/
 venv/
 .env/
 
-ingest/data/pdf/
-ingest/data/image/
+ingest/data
