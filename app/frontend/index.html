@@ -1,532 +1,858 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RAG Chatbot · Ask Your Document</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Chatbot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
 
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-:root {
-  --bg:          #0f0f10;
-  --panel:       #161618;
-  --surface:     #1c1c1f;
-  --surface2:    #242428;
-  --surface3:    #2c2c31;
-  --border:      #2a2a2f;
-  --border2:     #3a3a42;
-  --ink:         #f0eff4;
-  --ink2:        #9896a4;
-  --ink3:        #5a5864;
-  --accent:      #f05a28;
-  --accent-bg:   rgba(240,90,40,.12);
-  --accent-glow: rgba(240,90,40,.22);
-  --font:  'Outfit', sans-serif;
-  --mono:  'Geist Mono', monospace;
-  --ease:  cubic-bezier(0.16, 1, 0.3, 1);
-}
+    :root {
+      --bg: #f4f3f0;
+      --panel: #ffffff;
+      --surface: #f9f8f6;
+      --surface2: #f0efe9;
+      --border: rgba(0, 0, 0, 0.09);
+      --border2: rgba(0, 0, 0, 0.14);
+      --ink: #1a1916;
+      --ink2: #6b6963;
+      --ink3: #b0aea8;
+      --accent: #e04e1f;
+      --accent-bg: rgba(224, 78, 31, .09);
+      --accent-glow: rgba(224, 78, 31, .18);
+      --font: 'Outfit', sans-serif;
+      --mono: 'Geist Mono', monospace;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-html, body {
-  height: 100%;
-  font-family: var(--font);
-  overflow: hidden;
-}
+    html,
+    body {
+      height: 100%;
+      font-family: var(--font);
+      overflow: hidden;
+    }
 
-/* ── Full-page gradient background ── */
-body {
-  background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(200,40,10,.55) 0%, transparent 65%),
-    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(180,30,5,.35) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 50% at 20% 90%,  rgba(120,20,5,.25) 0%, transparent 60%),
-    #0a0a0b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 28px 20px;
-}
+    body {
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 20px;
+    }
 
-/* ── Floating shell with rounded corners ── */
-.shell {
-  width: 100%;
-  max-width: 780px;
-  height: calc(100vh - 56px);
-  display: flex;
-  flex-direction: column;
-  border-radius: 20px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.07);
-  background: rgba(13,13,15,.82);
-  backdrop-filter: blur(28px) saturate(1.4);
-  -webkit-backdrop-filter: blur(28px) saturate(1.4);
-  box-shadow:
-    0 0 0 1px rgba(240,90,40,.08),
-    0 32px 80px rgba(0,0,0,.7),
-    0 0 120px rgba(200,40,10,.12);
-  animation: shellIn .55s var(--ease) both;
-}
-@keyframes shellIn {
-  from { opacity:0; transform: translateY(18px) scale(.98); }
-  to   { opacity:1; transform: none; }
-}
+    .shell {
+      width: 100%;
+      max-width: 780px;
+      height: calc(100vh - 56px);
+      display: flex;
+      flex-direction: column;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--border2);
+      background: var(--panel);
+      box-shadow:
+        0 4px 32px rgba(0, 0, 0, 0.10),
+        0 1px 4px rgba(0, 0, 0, 0.06);
+      animation: shellIn .5s var(--ease) both;
+    }
 
-/* ── Topbar ── */
-.topbar {
-  display: flex; align-items: center;
-  gap: 11px; padding: 0 18px;
-  height: 52px;
-  background: rgba(18,18,20,.9);
-  border-bottom: 1px solid rgba(255,255,255,.06);
-  flex-shrink: 0;
-}
-.topbar-logo {
-  width: 28px; height: 28px; border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent), #c02808);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; color: #fff;
-  box-shadow: 0 0 14px var(--accent-glow);
-  flex-shrink: 0;
-}
-.topbar-title {
-  font-size: 14px; font-weight: 500;
-  color: var(--ink); flex: 1; letter-spacing: -.01em;
-}
-.topbar-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: #3ecf74;
-  box-shadow: 0 0 6px #3ecf74;
-  animation: pulse 2.6s infinite; flex-shrink: 0;
-}
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.2} }
-.tb-btn {
-  width: 28px; height: 28px; border: none;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 8px; color: var(--ink3); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; transition: background .15s, color .15s;
-}
-.tb-btn:hover { background: rgba(255,255,255,.1); color: var(--ink2); }
+    @keyframes shellIn {
+      from {
+        opacity: 0;
+        transform: translateY(16px) scale(.98);
+      }
 
-/* ── Chat ── */
-#chat {
-  flex: 1; overflow-y: auto;
-  padding: 32px 22px 12px;
-  display: flex; flex-direction: column;
-  scroll-behavior: smooth;
-}
-#chat::-webkit-scrollbar { width: 4px; }
-#chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 99px; }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
 
-/* ── Empty state ── */
-.empty {
-  margin: auto; text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 16px;
-  animation: fadeUp .5s var(--ease) both;
-  max-width: 360px;
-}
-@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+    /* ── Topbar ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      height: 50px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
 
-.empty-icon {
-  width: 64px; height: 64px; border-radius: 18px;
-  background: linear-gradient(135deg, rgba(240,90,40,.25), rgba(180,30,5,.15));
-  border: 1px solid rgba(240,90,40,.25);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 26px; color: var(--accent);
-  box-shadow: 0 0 40px rgba(200,40,10,.25), inset 0 1px 0 rgba(255,255,255,.06);
-}
-.empty h2 { font-size: 18px; font-weight: 600; color: var(--ink); letter-spacing: -.02em; }
-.empty p  { font-size: 13px; color: var(--ink2); line-height: 1.7; }
+    .topbar-logo {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, var(--accent), #a83410);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      flex-shrink: 0;
+    }
 
-.chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
-.chip {
-  padding: 6px 14px; border-radius: 8px;
-  border: 1px solid rgba(255,255,255,.1);
-  background: rgba(255,255,255,.04);
-  font-size: 12px; color: var(--ink2);
-  cursor: pointer; font-family: var(--font);
-  transition: all .18s; backdrop-filter: blur(6px);
-}
-.chip:hover {
-  border-color: var(--accent); color: var(--accent);
-  background: var(--accent-bg); transform: translateY(-1px);
-}
+    .topbar-title {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--ink);
+      flex: 1;
+      letter-spacing: -.01em;
+    }
 
-/* ── Messages ── */
-.row {
-  display: flex; gap: 10px;
-  padding: 13px 0;
-  animation: msgIn .26s var(--ease) both;
-}
-.row + .row { border-top: 1px solid rgba(255,255,255,.05); }
-.row.user { flex-direction: row-reverse; }
-@keyframes msgIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+    .topbar-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulse 2.6s infinite;
+      flex-shrink: 0;
+    }
 
-.av {
-  width: 27px; height: 27px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; font-size: 12px; margin-top: 1px;
-}
-.row.user .av {
-  background: linear-gradient(135deg, var(--accent), #c02808);
-  color: #fff; box-shadow: 0 2px 10px var(--accent-glow);
-}
-.row.bot .av {
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.1); color: var(--ink2);
-}
+    @keyframes pulse {
 
-.msg-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
-.row.user .msg-body { align-items: flex-end; }
+      0%,
+      100% {
+        opacity: 1
+      }
 
-.bbl {
-  padding: 10px 14px;
-  font-size: 13.5px; line-height: 1.78;
-  word-break: break-word; white-space: pre-wrap; overflow-wrap: anywhere;
-  border-radius: 14px;
-}
-.row.user .bbl {
-  max-width: 80%;
-  background: linear-gradient(135deg, var(--accent), #c02808);
-  color: #fff; border-bottom-right-radius: 4px;
-  box-shadow: 0 4px 18px var(--accent-glow);
-}
-.row.bot .bbl {
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.08);
-  color: var(--ink); border-bottom-left-radius: 4px;
-  backdrop-filter: blur(8px);
-}
+      50% {
+        opacity: .25
+      }
+    }
 
-.src-row { display: flex; flex-wrap: wrap; gap: 5px; }
-.src-chip {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 11px; color: var(--ink2);
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 6px; padding: 3px 8px;
-  font-family: var(--mono);
-}
-.src-chip i { font-size: 11px; color: var(--accent); }
+    .tb-btn {
+      width: 26px;
+      height: 26px;
+      border: none;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--ink3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: background .15s, color .15s;
+    }
 
-.msg-actions { display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
-.row:hover .msg-actions { opacity: 1; }
-.mab {
-  width: 24px; height: 24px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 6px; color: var(--ink3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; cursor: pointer; transition: all .12s;
-}
-.mab:hover { background: rgba(255,255,255,.1); color: var(--ink); }
+    .tb-btn:hover {
+      background: var(--border);
+      color: var(--ink2);
+    }
 
-/* ── Loading dots ── */
-.sending-bar { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink2); }
-.dots span {
-  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
-  background: var(--accent); margin: 0 1.5px;
-  animation: bounce 1.1s infinite ease-in-out;
-}
-.dots span:nth-child(2) { animation-delay: .15s; }
-.dots span:nth-child(3) { animation-delay: .3s; }
-@keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:.3} 40%{transform:translateY(-5px);opacity:1} }
+    /* ── Chat ── */
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 20px 10px;
+      display: flex;
+      flex-direction: column;
+      scroll-behavior: smooth;
+      background: var(--surface);
+    }
 
-/* ── Regen ── */
-.regen-row { display: flex; justify-content: center; padding: 10px 0 4px; }
-.regen-btn {
-  display: flex; align-items: center; gap: 7px;
-  padding: 6px 15px; border-radius: 8px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.09);
-  color: var(--ink2); font-size: 12px;
-  cursor: pointer; font-family: var(--font); transition: all .15s;
-  backdrop-filter: blur(8px);
-}
-.regen-btn:hover { background: rgba(255,255,255,.09); color: var(--ink); }
-.regen-btn i { font-size: 13px; }
+    #chat::-webkit-scrollbar {
+      width: 4px;
+    }
 
-/* ── Composer ── */
-.composer {
-  border-top: 1px solid rgba(255,255,255,.06);
-  padding: 12px 16px 14px;
-  background: rgba(12,12,14,.7);
-  flex-shrink: 0;
-  backdrop-filter: blur(16px);
-}
-.input-wrap {
-  display: flex; flex-direction: column;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 14px; overflow: hidden;
-  transition: border-color .22s, box-shadow .22s;
-}
-.input-wrap:focus-within {
-  border-color: rgba(240,90,40,.5);
-  box-shadow: 0 0 0 3px rgba(240,90,40,.1), 0 0 30px rgba(200,40,10,.1);
-}
-.input-row {
-  display: flex; align-items: flex-end;
-  padding: 10px 13px 8px; gap: 8px;
-}
-#q {
-  flex: 1; border: none; background: transparent;
-  font-family: var(--font); font-size: 14px; color: var(--ink);
-  resize: none; outline: none; line-height: 1.6;
-  max-height: 120px; min-height: 26px; overflow-y: auto; padding: 2px 0;
-}
-#q::placeholder { color: var(--ink3); }
-.input-footer {
-  display: flex; align-items: center;
-  padding: 5px 10px 9px; gap: 5px;
-  border-top: 1px solid rgba(255,255,255,.05);
-}
-.ib-btn {
-  width: 27px; height: 27px; border: none; background: transparent;
-  border-radius: 7px; color: var(--ink3); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; transition: background .15s, color .15s;
-}
-.ib-btn:hover { background: rgba(255,255,255,.08); color: var(--ink2); }
-.spacer { flex: 1; }
-.send-btn {
-  width: 30px; height: 30px; border: none; border-radius: 9px;
-  background: linear-gradient(135deg, var(--accent), #c02808);
-  color: #fff; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; transition: opacity .15s, transform .12s;
-  box-shadow: 0 2px 12px var(--accent-glow);
-}
-.send-btn:hover  { opacity: .88; }
-.send-btn:active { transform: scale(.91); }
-.send-btn.busy   { opacity: .3; pointer-events: none; }
+    #chat::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 99px;
+    }
 
-/* ── Popover ── */
-.pop-wrap { position: relative; }
-.popover {
-  position: absolute; bottom: calc(100% + 8px); right: 0;
-  background: rgba(28,28,32,.95);
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 11px; padding: 12px 14px;
-  display: flex; flex-direction: column; gap: 9px;
-  z-index: 50; white-space: nowrap;
-  animation: popIn .15s var(--ease) both;
-  box-shadow: 0 8px 32px rgba(0,0,0,.6);
-  backdrop-filter: blur(20px);
-}
-@keyframes popIn { from{opacity:0;transform:translateY(4px) scale(.96)} to{opacity:1;transform:none} }
-.popover p { font-size: 13px; font-weight: 500; color: var(--ink); }
-.pop-btns { display: flex; gap: 6px; }
-.pop-btns button {
-  flex: 1; padding: 5px 10px; border-radius: 7px;
-  font-family: var(--font); font-size: 12px; cursor: pointer;
-  border: 1px solid rgba(255,255,255,.1);
-  background: rgba(255,255,255,.06); color: var(--ink2);
-  transition: filter .12s;
-}
-.pop-btns button.danger { background: rgba(180,30,10,.2); border-color: rgba(248,113,113,.2); color: #f87171; }
-.pop-btns button:hover { filter: brightness(1.2); }
+    /* ── Empty state ── */
+    .empty {
+      margin: auto;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      animation: fadeUp .45s var(--ease) both;
+      max-width: 340px;
+    }
 
-/* ── Toast ── */
-.toast {
-  position: fixed; bottom: 22px; left: 50%;
-  transform: translateX(-50%) translateY(10px);
-  background: rgba(28,28,32,.95); color: var(--ink);
-  font-size: 12.5px; padding: 9px 16px;
-  border-radius: 10px; border: 1px solid rgba(255,255,255,.1);
-  display: flex; align-items: center; gap: 8px;
-  z-index: 999; opacity: 0; pointer-events: none;
-  transition: opacity .22s, transform .22s; white-space: nowrap;
-  box-shadow: 0 4px 24px rgba(0,0,0,.5);
-  backdrop-filter: blur(20px);
-}
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast i { font-size: 13px; color: #f87171; }
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px)
+      }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 99px; }
-</style>
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .empty-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      background: var(--accent-bg);
+      border: 1px solid rgba(224, 78, 31, .18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: var(--accent);
+    }
+
+    .empty h2 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -.02em;
+    }
+
+    .empty p {
+      font-size: 13px;
+      color: var(--ink2);
+      line-height: 1.7;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .chip {
+      padding: 5px 13px;
+      border-radius: 7px;
+      border: 1px solid var(--border2);
+      background: #fff;
+      font-size: 12px;
+      color: var(--ink2);
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all .16s;
+    }
+
+    .chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-bg);
+    }
+
+    /* ── Messages ── */
+    .row {
+      display: flex;
+      gap: 9px;
+      padding: 11px 0;
+      animation: msgIn .22s var(--ease) both;
+    }
+
+    .row+.row {
+      border-top: 1px solid var(--border);
+    }
+
+    .row.user {
+      flex-direction: row-reverse;
+    }
+
+    @keyframes msgIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .av {
+      width: 25px;
+      height: 25px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .row.user .av {
+      background: linear-gradient(135deg, var(--accent), #a83410);
+      color: #fff;
+    }
+
+    .row.bot .av {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--ink2);
+    }
+
+    .msg-body {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .row.user .msg-body {
+      align-items: flex-end;
+    }
+
+    .bbl {
+      padding: 9px 13px;
+      font-size: 13.5px;
+      line-height: 1.76;
+      word-break: break-word;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      border-radius: 12px;
+    }
+
+    .row.user .bbl {
+      max-width: 78%;
+      background: linear-gradient(135deg, var(--accent), #a83410);
+      color: #fff;
+      border-bottom-right-radius: 3px;
+      box-shadow: 0 2px 10px var(--accent-glow);
+    }
+
+    .row.bot .bbl {
+      background: #ffffff;
+      border: 1px solid var(--border2);
+      color: var(--ink);
+      border-bottom-left-radius: 3px;
+    }
+
+    .src-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .src-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--ink2);
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      padding: 3px 7px;
+      font-family: var(--mono);
+    }
+
+    .src-chip i {
+      font-size: 11px;
+      color: var(--accent);
+    }
+
+    .msg-actions {
+      display: flex;
+      gap: 3px;
+      opacity: 0;
+      transition: opacity .14s;
+    }
+
+    .row:hover .msg-actions {
+      opacity: 1;
+    }
+
+    .mab {
+      width: 22px;
+      height: 22px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--ink3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .12s;
+    }
+
+    .mab:hover {
+      background: var(--border2);
+      color: var(--ink);
+    }
+
+    /* ── Loading dots ── */
+    .sending-bar {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      color: var(--ink2);
+    }
+
+    .dots span {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin: 0 1.5px;
+      animation: bounce 1.1s infinite ease-in-out;
+    }
+
+    .dots span:nth-child(2) {
+      animation-delay: .15s;
+    }
+
+    .dots span:nth-child(3) {
+      animation-delay: .3s;
+    }
+
+    @keyframes bounce {
+
+      0%,
+      80%,
+      100% {
+        transform: translateY(0);
+        opacity: .3
+      }
+
+      40% {
+        transform: translateY(-5px);
+        opacity: 1
+      }
+    }
+
+    /* ── Regen ── */
+    .regen-row {
+      display: flex;
+      justify-content: center;
+      padding: 8px 0 3px;
+      background: var(--surface);
+    }
+
+    .regen-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 7px;
+      background: #fff;
+      border: 1px solid var(--border2);
+      color: var(--ink2);
+      font-size: 12px;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all .14s;
+    }
+
+    .regen-btn:hover {
+      background: var(--surface2);
+      color: var(--ink);
+    }
+
+    .regen-btn i {
+      font-size: 13px;
+    }
+
+    /* ── Composer ── */
+    .composer {
+      border-top: 1px solid var(--border);
+      padding: 10px 14px 12px;
+      background: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .input-wrap {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 13px;
+      overflow: hidden;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .input-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+    }
+
+    .input-row {
+      display: flex;
+      align-items: flex-end;
+      padding: 9px 12px 7px;
+      gap: 7px;
+    }
+
+    #q {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-family: var(--font);
+      font-size: 13.5px;
+      color: var(--ink);
+      resize: none;
+      outline: none;
+      line-height: 1.6;
+      max-height: 110px;
+      min-height: 24px;
+      overflow-y: auto;
+      padding: 2px 0;
+    }
+
+    #q::placeholder {
+      color: var(--ink3);
+    }
+
+    .input-footer {
+      display: flex;
+      align-items: center;
+      padding: 4px 9px 8px;
+      gap: 4px;
+      border-top: 1px solid var(--border);
+    }
+
+    .ib-btn {
+      width: 26px;
+      height: 26px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      color: var(--ink3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: background .14s, color .14s;
+    }
+
+    .ib-btn:hover {
+      background: var(--surface2);
+      color: var(--ink2);
+    }
+
+    .spacer {
+      flex: 1;
+    }
+
+    .send-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #a83410);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: opacity .14s, transform .12s;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    .send-btn:hover {
+      opacity: .86;
+    }
+
+    .send-btn:active {
+      transform: scale(.9);
+    }
+
+    .send-btn.busy {
+      opacity: .3;
+      pointer-events: none;
+    }
+
+    /* ── Popover ── */
+    .pop-wrap {
+      position: relative;
+    }
+
+    .popover {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      right: 0;
+      background: #ffffff;
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      padding: 11px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 50;
+      white-space: nowrap;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .12);
+    }
+
+    .popover p {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .pop-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .pop-btns button {
+      flex: 1;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 12px;
+      cursor: pointer;
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      color: var(--ink2);
+      transition: filter .12s;
+    }
+
+    .pop-btns button.danger {
+      background: #fff1f1;
+      border-color: #fca5a5;
+      color: #dc2626;
+    }
+
+    .pop-btns button:hover {
+      filter: brightness(.95);
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: #ffffff;
+      color: var(--ink);
+      font-size: 12.5px;
+      padding: 9px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s, transform .22s;
+      white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, .12);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast i {
+      font-size: 13px;
+      color: #ef4444;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 99px;
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="toast" id="toast">
-  <i class="ti ti-wifi-off"></i>
-  <span id="toastMsg">Backend not reachable. Start server at port 8000.</span>
-</div>
+  <div class="toast" id="toast">
+    <i class="ti ti-wifi-off"></i>
+    <span id="toastMsg">Backend not reachable. Start server at port 8000.</span>
+  </div>
 
-<div class="shell">
+  <div class="shell">
 
-  <!-- Topbar -->
-  <div class="topbar">
-    <div class="topbar-logo"><i class="ti ti-file-text"></i></div>
-    <span class="topbar-title">RAG Chatbot</span>
-    <div class="topbar-dot"></div>
-    <div class="pop-wrap" id="topClearWrap">
-      <button class="tb-btn" onclick="promptClear()" title="Clear chat">
-        <i class="ti ti-trash"></i>
-      </button>
-      <div class="popover" id="clearPop" style="display:none">
-        <p>Clear conversation?</p>
-        <div class="pop-btns">
-          <button onclick="dismissClear()">Cancel</button>
-          <button class="danger" onclick="clearChat()">Clear</button>
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-logo"><i class="ti ti-file-text"></i></div>
+      <span class="topbar-title">RAG Chatbot</span>
+      <div class="topbar-dot"></div>
+      <div class="pop-wrap" id="topClearWrap">
+        <button class="tb-btn" onclick="promptClear()" title="Clear chat">
+          <i class="ti ti-trash"></i>
+        </button>
+        <div class="popover" id="clearPop" style="display:none">
+          <p>Clear conversation?</p>
+          <div class="pop-btns">
+            <button onclick="dismissClear()">Cancel</button>
+            <button class="danger" onclick="clearChat()">Clear</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Chat -->
-  <div id="chat" aria-live="polite">
-    <div class="empty" id="emptyState">
-      <div class="empty-icon"><i class="ti ti-message-question"></i></div>
-      <h2>Ask anything!</h2>
-      <p>I'll search through your document and give you a grounded answer with source references.</p>
-      <div class="chips">
-        <button class="chip" onclick="useChip(this)">Summarize</button>
-        <button class="chip" onclick="useChip(this)">Key findings</button>
-        <button class="chip" onclick="useChip(this)">Main topics</button>
-        <button class="chip" onclick="useChip(this)">Conclusions</button>
+    <!-- Chat -->
+    <div id="chat" aria-live="polite">
+      <div class="empty" id="emptyState">
+        <div class="empty-icon"><i class="ti ti-message-question"></i></div>
+        <h2>Ask anything!</h2>
+        <p>I'll search through your document and give you a grounded answer with source references.</p>
+        <div class="chips">
+          <button class="chip" onclick="useChip(this)">Summarize</button>
+          <button class="chip" onclick="useChip(this)">Key findings</button>
+          <button class="chip" onclick="useChip(this)">Main topics</button>
+          <button class="chip" onclick="useChip(this)">Conclusions</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Regen -->
-  <div class="regen-row" id="regenRow" style="display:none">
-    <button class="regen-btn" onclick="regenerate()">
-      <i class="ti ti-refresh"></i> Regenerate response
-    </button>
-  </div>
+    <!-- Regen -->
+    <div class="regen-row" id="regenRow" style="display:none">
+      <button class="regen-btn" onclick="regenerate()">
+        <i class="ti ti-refresh"></i> Regenerate response
+      </button>
+    </div>
 
-  <!-- Composer -->
-  <div class="composer">
-    <div class="input-wrap">
-      <div class="input-row">
-        <textarea id="q" placeholder="Ask a question about the document…" rows="1"
-          autocomplete="off"
-          oninput="autoGrow(this)"
-          onkeydown="handleKey(event)"></textarea>
-      </div>
-      <div class="input-footer">
-        <button class="ib-btn" title="Attach"><i class="ti ti-paperclip"></i></button>
-        <button class="ib-btn" title="Voice"><i class="ti ti-microphone"></i></button>
-        <span class="spacer"></span>
-        <button class="send-btn" id="sendBtn" onclick="send()">
-          <i class="ti ti-arrow-up"></i>
-        </button>
+    <!-- Composer -->
+    <div class="composer">
+      <div class="input-wrap">
+        <div class="input-row">
+          <textarea id="q" placeholder="Ask a question about the document…" rows="1" autocomplete="off"
+            oninput="autoGrow(this)" onkeydown="handleKey(event)"></textarea>
+        </div>
+        <div class="input-footer">
+          <button class="ib-btn" title="Attach"><i class="ti ti-paperclip"></i></button>
+          <button class="ib-btn" title="Voice"><i class="ti ti-microphone"></i></button>
+          <span class="spacer"></span>
+          <button class="send-btn" id="sendBtn" onclick="send()">
+            <i class="ti ti-arrow-up"></i>
+          </button>
+        </div>
       </div>
     </div>
+
   </div>
 
-</div>
+  <script>
+    const chatEl = document.getElementById("chat");
+    const inp = document.getElementById("q");
+    const sendBtn = document.getElementById("sendBtn");
+    const clearPop = document.getElementById("clearPop");
+    const regenRow = document.getElementById("regenRow");
+    let msgCount = 0, lastQ = "", toastTimer = null;
 
-<script>
-const chatEl   = document.getElementById("chat");
-const inp      = document.getElementById("q");
-const sendBtn  = document.getElementById("sendBtn");
-const clearPop = document.getElementById("clearPop");
-const regenRow = document.getElementById("regenRow");
-let msgCount = 0, lastQ = "", toastTimer = null;
+    function autoGrow(el) {
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 110) + "px";
+    }
+    function handleKey(e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+    }
+    function useChip(btn) { inp.value = btn.textContent; autoGrow(inp); send(); }
+    function removeEmpty() { const el = document.getElementById("emptyState"); if (el) el.remove(); }
+    function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function fmt(s) { return esc(s).replace(/\n\n+/g, "<br><br>").replace(/\n/g, "<br>"); }
 
-function autoGrow(el) {
-  el.style.height = "auto";
-  el.style.height = Math.min(el.scrollHeight, 120) + "px";
-}
-function handleKey(e) {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-}
-function useChip(btn) { inp.value = btn.textContent; autoGrow(inp); send(); }
-function removeEmpty() { const el = document.getElementById("emptyState"); if (el) el.remove(); }
-function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-function fmt(s)  { return esc(s).replace(/\n\n+/g,"<br><br>").replace(/\n/g,"<br>"); }
-
-function addMsg(type, html) {
-  removeEmpty(); msgCount++;
-  const row = document.createElement("div");
-  row.className = "row " + (type === "user" ? "user" : "bot");
-  const icon = type === "user" ? "ti-user" : "ti-robot";
-  const acts = type === "bot" ? `<div class="msg-actions">
+    function addMsg(type, html) {
+      removeEmpty(); msgCount++;
+      const row = document.createElement("div");
+      row.className = "row " + (type === "user" ? "user" : "bot");
+      const icon = type === "user" ? "ti-user" : "ti-robot";
+      const acts = type === "bot" ? `<div class="msg-actions">
     <button class="mab" title="Like"><i class="ti ti-thumb-up"></i></button>
     <button class="mab" title="Dislike"><i class="ti ti-thumb-down"></i></button>
     <button class="mab" title="Copy"><i class="ti ti-copy"></i></button>
   </div>` : "";
-  row.innerHTML = `
+      row.innerHTML = `
     <div class="av"><i class="ti ${icon}"></i></div>
     <div class="msg-body"><div class="bbl">${html}</div>${acts}</div>`;
-  chatEl.appendChild(row);
-  chatEl.scrollTop = chatEl.scrollHeight;
-  return row;
-}
+      chatEl.appendChild(row);
+      chatEl.scrollTop = chatEl.scrollHeight;
+      return row;
+    }
 
-function showToast(msg) {
-  const t = document.getElementById("toast");
-  document.getElementById("toastMsg").textContent = msg;
-  t.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 4500);
-}
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      document.getElementById("toastMsg").textContent = msg;
+      t.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove("show"), 4500);
+    }
 
-async function send() {
-  const q = inp.value.trim();
-  if (!q) return;
-  lastQ = q;
-  addMsg("user", esc(q));
-  inp.value = ""; inp.style.height = "auto";
-  sendBtn.classList.add("busy");
-  regenRow.style.display = "none";
+    async function send() {
+      const q = inp.value.trim();
+      if (!q) return;
+      lastQ = q;
+      addMsg("user", esc(q));
+      inp.value = ""; inp.style.height = "auto";
+      sendBtn.classList.add("busy");
+      regenRow.style.display = "none";
 
-  const loadingRow = addMsg("bot", `<div class="sending-bar">
+      const loadingRow = addMsg("bot", `<div class="sending-bar">
     <div class="dots"><span></span><span></span><span></span></div>
     <span>Searching document…</span>
   </div>`);
 
-  try {
-    const res = await fetch("http://127.0.0.1:8000/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: q })
-    });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
+      try {
+        const res = await fetch("http://127.0.0.1:8000/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: q })
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
 
-    const body = loadingRow.querySelector(".msg-body");
-    body.querySelector(".bbl").innerHTML = fmt(data.answer || "No answer returned.");
+        const body = loadingRow.querySelector(".msg-body");
+        body.querySelector(".bbl").innerHTML = fmt(data.answer || "No answer returned.");
 
-    const srcs = (data.sources && data.sources.length) ? data.sources : [];
-    if (srcs.length) {
-      const sr = document.createElement("div");
-      sr.className = "src-row";
-      srcs.forEach(s => { sr.innerHTML += `<span class="src-chip"><i class="ti ti-bookmark"></i>${esc(s)}</span>`; });
-      body.insertBefore(sr, body.querySelector(".msg-actions"));
+        const srcs = (data.sources && data.sources.length) ? data.sources : [];
+        if (srcs.length) {
+          const sr = document.createElement("div");
+          sr.className = "src-row";
+          srcs.forEach(s => { sr.innerHTML += `<span class="src-chip"><i class="ti ti-bookmark"></i>${esc(s)}</span>`; });
+          body.insertBefore(sr, body.querySelector(".msg-actions"));
+        }
+        regenRow.style.display = "flex";
+
+      } catch (_) {
+        loadingRow.remove(); msgCount--;
+        showToast("Backend not reachable. Start the server at port 8000.");
+      }
+
+      sendBtn.classList.remove("busy");
+      chatEl.scrollTop = chatEl.scrollHeight;
     }
-    regenRow.style.display = "flex";
 
-  } catch (_) {
-    loadingRow.remove(); msgCount--;
-    showToast("Backend not reachable. Start the server at port 8000.");
-  }
+    function regenerate() { if (!lastQ) return; inp.value = lastQ; send(); }
 
-  sendBtn.classList.remove("busy");
-  chatEl.scrollTop = chatEl.scrollHeight;
-}
-
-function regenerate() { if (!lastQ) return; inp.value = lastQ; send(); }
-
-function promptClear() {
-  if (msgCount === 0) return;
-  clearPop.style.display = clearPop.style.display === "none" ? "block" : "none";
-}
-function dismissClear() { clearPop.style.display = "none"; }
-function clearChat() {
-  clearPop.style.display = "none";
-  chatEl.innerHTML = ""; msgCount = 0; lastQ = "";
-  regenRow.style.display = "none";
-  const empty = document.createElement("div");
-  empty.className = "empty"; empty.id = "emptyState";
-  empty.innerHTML = `
+    function promptClear() {
+      if (msgCount === 0) return;
+      clearPop.style.display = clearPop.style.display === "none" ? "block" : "none";
+    }
+    function dismissClear() { clearPop.style.display = "none"; }
+    function clearChat() {
+      clearPop.style.display = "none";
+      chatEl.innerHTML = ""; msgCount = 0; lastQ = "";
+      regenRow.style.display = "none";
+      const empty = document.createElement("div");
+      empty.className = "empty"; empty.id = "emptyState";
+      empty.innerHTML = `
     <div class="empty-icon"><i class="ti ti-message-question"></i></div>
     <h2>Conversation cleared</h2>
     <p>Ask a new question to get started.</p>
@@ -536,13 +862,14 @@ function clearChat() {
       <button class="chip" onclick="useChip(this)">Main topics</button>
       <button class="chip" onclick="useChip(this)">Any conclusions?</button>
     </div>`;
-  chatEl.appendChild(empty);
-}
+      chatEl.appendChild(empty);
+    }
 
-document.addEventListener("click", e => {
-  const wrap = document.getElementById("topClearWrap");
-  if (wrap && !wrap.contains(e.target)) clearPop.style.display = "none";
-});
-</script>
+    document.addEventListener("click", e => {
+      const wrap = document.getElementById("topClearWrap");
+      if (wrap && !wrap.contains(e.target)) clearPop.style.display = "none";
+    });
+  </script>
 </body>
+
 </html>

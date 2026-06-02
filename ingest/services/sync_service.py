@@ -6,7 +6,7 @@ from typing import Set, Dict, List
 
 logger = logging.getLogger(__name__)
 
-BASE_DATA_DIR = "ingest/data"
+BASE_DATA_DIR = "data"
 FOLDERS = ["pdf", "image", "docx", "urls"]
 
 

@@ -46,6 +46,7 @@ def upsert_vectors(pc_index, vectors: list[dict]) -> int:
     if not vectors:
         return 0
 
+    logger.info(f"Upserting {len(vectors)} vectors to Pinecone...")
     pc_index.upsert(vectors=vectors)
-    logger.info(f"Upserted {len(vectors)} vectors to Pinecone")
+    logger.info(f"Upserted {len(vectors)} vectors to Pinecone successfully")
     return len(vectors)

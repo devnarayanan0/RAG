@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Knowledge Ingestion</title>
+<title>Ingestion</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -13,18 +13,24 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --ink:         #f0eff4;
-  --ink2:        #9896a4;
-  --ink3:        #5a5864;
-  --accent:      #f05a28;
-  --accent-bg:   rgba(240,90,40,.12);
-  --accent-glow: rgba(240,90,40,.22);
-  --green:       #3ecf74;
-  --green-bg:    rgba(62,207,116,.10);
-  --red:         #f87171;
-  --red-bg:      rgba(248,113,113,.10);
-  --yellow:      #fbbf24;
-  --yellow-bg:   rgba(251,191,36,.10);
+  --bg:          #f4f3f0;
+  --panel:       #ffffff;
+  --surface:     #f9f8f6;
+  --surface2:    #f0efe9;
+  --border:      rgba(0,0,0,0.09);
+  --border2:     rgba(0,0,0,0.14);
+  --ink:         #1a1916;
+  --ink2:        #6b6963;
+  --ink3:        #b0aea8;
+  --accent:      #e04e1f;
+  --accent-bg:   rgba(224,78,31,.09);
+  --accent-glow: rgba(224,78,31,.18);
+  --green:       #16a34a;
+  --green-bg:    rgba(22,163,74,.09);
+  --red:         #dc2626;
+  --red-bg:      rgba(220,38,38,.09);
+  --yellow:      #b45309;
+  --yellow-bg:   rgba(180,83,9,.09);
   --font: 'Outfit', sans-serif;
   --mono: 'Geist Mono', monospace;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -36,13 +42,8 @@ html, body {
   overflow: hidden;
 }
 
-/* ── Gradient background ── */
 body {
-  background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(200,40,10,.55) 0%, transparent 65%),
-    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(180,30,5,.35) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 50% at 20% 90%,  rgba(120,20,5,.25) 0%, transparent 60%),
-    #0a0a0b;
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,255 +51,57 @@ body {
   color: var(--ink);
 }
 
-/* ── Floating shell ── */
 .shell {
   width: 100%;
-  max-width: 900px;
+  max-width: 920px;
   height: calc(100vh - 56px);
   display: flex;
   flex-direction: column;
-  border-radius: 20px;
+  border-radius: 18px;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,.07);
-  background: rgba(13,13,15,.82);
-  backdrop-filter: blur(28px) saturate(1.4);
-  -webkit-backdrop-filter: blur(28px) saturate(1.4);
-  box-shadow:
-    0 0 0 1px rgba(240,90,40,.08),
-    0 32px 80px rgba(0,0,0,.7),
-    0 0 120px rgba(200,40,10,.12);
-  animation: shellIn .55s var(--ease) both;
+  border: 1px solid var(--border2);
+  background: var(--panel);
+  box-shadow: 0 4px 32px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06);
+  animation: shellIn .5s var(--ease) both;
 }
 @keyframes shellIn {
-  from { opacity:0; transform: translateY(18px) scale(.98); }
+  from { opacity:0; transform: translateY(16px) scale(.98); }
   to   { opacity:1; transform: none; }
 }
 
-/* ── Topbar ── */
 .topbar {
-  height: 52px;
-  background: rgba(18,18,20,.9);
-  border-bottom: 1px solid rgba(255,255,255,.06);
+  height: 50px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
   display: flex; align-items: center;
-  padding: 0 18px; gap: 11px;
+  padding: 0 16px; gap: 10px;
   flex-shrink: 0;
 }
 .topbar-logo {
-  width: 28px; height: 28px; border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent), #c02808);
+  width: 26px; height: 26px; border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent), #a83410);
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; color: #fff;
-  box-shadow: 0 0 14px var(--accent-glow);
-  flex-shrink: 0;
+  font-size: 12px; color: #fff; flex-shrink: 0;
 }
-.topbar-title { font-size: 14px; font-weight: 500; color: var(--ink); letter-spacing: -.01em; }
+.topbar-title { font-size: 13.5px; font-weight: 500; color: var(--ink); letter-spacing: -.01em; }
 
-/* ── Body layout ── */
 .body {
   flex: 1;
   display: flex;
   overflow: hidden;
 }
 
-/* ── Left: main content ── */
-.main {
-  flex: 1;
-  overflow-y: auto;
-  padding: 28px 26px;
-  min-width: 0;
-}
-.main::-webkit-scrollbar { width: 4px; }
-.main::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 99px; }
-
-.page-header { margin-bottom: 24px; }
-.page-header h1 { font-size: 19px; font-weight: 600; letter-spacing: -.02em; margin-bottom: 4px; }
-.page-header p  { font-size: 13px; color: var(--ink2); }
-
-.tab-content { display: none; animation: fadeUp .25s var(--ease) both; }
-.tab-content.active { display: block; }
-@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-
-.form-group { margin-bottom: 18px; }
-.label { display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 8px; color: var(--ink2); }
-
-/* drop zone */
-.drop-zone {
-  border: 1.5px dashed rgba(255,255,255,.15);
-  border-radius: 12px; padding: 36px 20px;
-  text-align: center; cursor: pointer;
-  background: rgba(255,255,255,.03);
-  transition: border-color .2s, background .2s;
-}
-.drop-zone:hover, .drop-zone.drag-over {
-  border-color: var(--accent);
-  background: var(--accent-bg);
-}
-.dz-icon {
-  width: 50px; height: 50px; border-radius: 13px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.1);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; color: var(--ink2);
-  margin: 0 auto 13px;
-  transition: background .2s, color .2s;
-}
-.drop-zone:hover .dz-icon, .drop-zone.drag-over .dz-icon {
-  background: var(--accent-bg); color: var(--accent);
-  border-color: rgba(240,90,40,.25);
-}
-.dz-title { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
-.dz-hint  { font-size: 12px; color: var(--ink3); }
-.dz-hint span { color: var(--accent); }
-
-input[type="file"] { display: none; }
-
-/* file preview */
-.file-preview {
-  display: none; margin-top: 10px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.09);
-  border-radius: 10px; padding: 11px 13px;
-  align-items: center; gap: 11px;
-}
-.file-preview.show { display: flex; }
-.fp-icon {
-  width: 34px; height: 34px; border-radius: 8px;
-  background: var(--accent-bg); border: 1px solid rgba(240,90,40,.2);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; color: var(--accent); flex-shrink: 0;
-}
-.fp-info { flex: 1; min-width: 0; }
-.fp-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fp-size { font-size: 11px; color: var(--ink3); margin-top: 2px; font-family: var(--mono); }
-.remove-btn {
-  padding: 4px 11px; border-radius: 7px;
-  background: var(--red-bg); border: 1px solid rgba(248,113,113,.18);
-  color: var(--red); font-size: 12px; font-weight: 500;
-  cursor: pointer; font-family: var(--font); transition: all .15s;
-}
-.remove-btn:hover { background: rgba(248,113,113,.2); }
-
-/* url input */
-.url-input-wrap {
-  display: flex; align-items: center;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 10px; overflow: hidden;
-  transition: border-color .2s, box-shadow .2s;
-}
-.url-input-wrap:focus-within {
-  border-color: rgba(240,90,40,.5);
-  box-shadow: 0 0 0 3px rgba(240,90,40,.1);
-}
-.url-icon { padding: 0 12px; color: var(--ink3); font-size: 15px; display: flex; align-items: center; }
-input[type="url"] {
-  flex: 1; padding: 11px 12px 11px 0;
-  border: none; background: transparent;
-  font-family: var(--mono); font-size: 13px; color: var(--ink); outline: none;
-}
-input[type="url"]::placeholder { color: var(--ink3); }
-
-/* upload btn */
-.upload-btn {
-  width: 100%; padding: 11px;
-  background: linear-gradient(135deg, var(--accent), #c02808);
-  color: #fff; border: none; border-radius: 10px;
-  font-size: 14px; font-weight: 500; cursor: pointer;
-  font-family: var(--font);
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: opacity .15s, transform .1s;
-  box-shadow: 0 2px 14px var(--accent-glow);
-}
-.upload-btn:hover  { opacity: .88; }
-.upload-btn:active { transform: scale(.99); }
-.upload-btn i { font-size: 15px; }
-
-/* status */
-.status {
-  display: none; margin-top: 16px;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 10px; overflow: hidden;
-}
-.status.show { display: block; }
-.status-header {
-  padding: 10px 13px; display: flex; align-items: center; gap: 8px;
-  font-size: 12.5px; font-weight: 500;
-  background: rgba(255,255,255,.04);
-  border-bottom: 1px solid rgba(255,255,255,.07);
-}
-.status-header.loading { color: var(--accent); }
-.status-header.success { color: var(--green); background: var(--green-bg); }
-.status-header.error   { color: var(--red);   background: var(--red-bg); }
-.spinner {
-  width: 12px; height: 12px; flex-shrink: 0;
-  border: 2px solid rgba(240,90,40,.2); border-top-color: var(--accent);
-  border-radius: 50%; animation: spin .7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.status-body {
-  padding: 13px; background: rgba(0,0,0,.25);
-  font-family: var(--mono); font-size: 12px; color: var(--ink2);
-  line-height: 1.65; max-height: 200px; overflow-y: auto;
-}
-
-/* summary */
-.summary { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
-.sum-item {
-  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
-  border-radius: 8px; padding: 11px;
-}
-.sum-label { font-size: 10.5px; color: var(--ink3); margin-bottom: 4px; }
-.sum-value { font-size: 19px; font-weight: 600; color: var(--accent); font-family: var(--mono); }
-.badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 500; margin-top: 5px;
-}
-.badge.success { background: var(--green-bg); color: var(--green); }
-.badge.warning { background: var(--yellow-bg); color: var(--yellow); }
-.badge.error   { background: var(--red-bg); color: var(--red); }
-
-/* audit */
-.audit-panel { display: none; margin-top: 18px; }
-.audit-panel.show { display: block; }
-.audit-title {
-  font-size: 10.5px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: .08em; color: var(--ink3); margin-bottom: 10px;
-  display: flex; align-items: center; gap: 6px;
-}
-.audit-title i { font-size: 12px; color: var(--accent); }
-.audit-grid {
-  display: grid; grid-template-columns: repeat(2,1fr);
-  gap: 7px; margin-bottom: 9px;
-}
-.audit-item {
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.07);
-  border-radius: 8px; padding: 10px 12px;
-}
-.audit-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
-.audit-value { font-size: 12px; color: var(--ink); font-family: var(--mono); word-break: break-all; }
-.audit-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 7px; }
-.meta-stat {
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.07);
-  border-radius: 8px; padding: 10px; text-align: center;
-}
-.meta-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: .05em; }
-.meta-value { font-size: 17px; font-weight: 600; color: var(--accent); margin-top: 4px; font-family: var(--mono); }
-.meta-value.small { font-size: 11px; }
-
-/* ── Right: vertical menu ── */
-.right-menu {
-  width: 190px; min-width: 190px;
-  background: rgba(14,14,16,.7);
-  border-left: 1px solid rgba(255,255,255,.06);
+/* LEFT MENU */
+.left-menu {
+  width: 180px; min-width: 180px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
-  padding: 18px 9px; gap: 2px;
+  padding: 16px 8px; gap: 2px;
   overflow-y: auto;
-  backdrop-filter: blur(8px);
 }
-.right-menu::-webkit-scrollbar { width: 3px; }
-.right-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 99px; }
+.left-menu::-webkit-scrollbar { width: 3px; }
+.left-menu::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
 
 .menu-section {
   font-size: 10px; font-weight: 600; text-transform: uppercase;
@@ -306,8 +109,8 @@ input[type="url"]::placeholder { color: var(--ink3); }
   padding: 4px 10px 8px; margin-top: 4px;
 }
 .menu-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: 8px;
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 11px; border-radius: 8px;
   font-size: 13px; font-weight: 400; color: var(--ink2);
   cursor: pointer; border: none; background: transparent;
   font-family: var(--font); width: 100%; text-align: left;
@@ -315,169 +118,319 @@ input[type="url"]::placeholder { color: var(--ink3); }
   position: relative;
 }
 .menu-item i { font-size: 15px; flex-shrink: 0; }
-.menu-item:hover { background: rgba(255,255,255,.06); color: var(--ink); }
+.menu-item:hover { background: var(--surface2); color: var(--ink); }
 .menu-item.active {
   background: var(--accent-bg); color: var(--accent); font-weight: 500;
 }
-.menu-item.active::before {
+.menu-item.active::after {
   content: '';
-  position: absolute; right: 0; top: 50%;
+  position: absolute; left: 0; top: 50%;
   transform: translateY(-50%);
   width: 3px; height: 60%;
-  border-radius: 3px 0 0 3px;
+  border-radius: 0 3px 3px 0;
   background: var(--accent);
 }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 99px; }
+/* MAIN */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 26px 24px;
+  min-width: 0;
+  background: #fff;
+}
+.main::-webkit-scrollbar { width: 4px; }
+.main::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
 
-/* ── Step-by-step extraction UI ── */
+.page-header { margin-bottom: 20px; }
+.page-header h1 { font-size: 17px; font-weight: 600; letter-spacing: -.02em; margin-bottom: 3px; color: var(--ink); }
+.page-header p  { font-size: 12.5px; color: var(--ink2); }
+
+.tab-content { display: none; animation: fadeUp .22s var(--ease) both; }
+.tab-content.active { display: block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+
+.form-group { margin-bottom: 16px; }
+.label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 7px; color: var(--ink2); }
+
+.drop-zone {
+  border: 1.5px dashed var(--border2);
+  border-radius: 11px; padding: 32px 20px;
+  text-align: center; cursor: pointer;
+  background: var(--surface);
+  transition: border-color .2s, background .2s;
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.dz-icon {
+  width: 46px; height: 46px; border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: var(--ink2);
+  margin: 0 auto 12px;
+  transition: background .2s, color .2s;
+}
+.drop-zone:hover .dz-icon, .drop-zone.drag-over .dz-icon {
+  background: var(--accent-bg); color: var(--accent);
+  border-color: rgba(224,78,31,.2);
+}
+.dz-title { font-size: 13.5px; font-weight: 500; color: var(--ink); margin-bottom: 3px; }
+.dz-hint  { font-size: 12px; color: var(--ink3); }
+.dz-hint span { color: var(--accent); }
+
+input[type="file"] { display: none; }
+
+.file-preview {
+  display: none; margin-top: 9px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 9px; padding: 10px 12px;
+  align-items: center; gap: 10px;
+}
+.file-preview.show { display: flex; }
+.fp-icon {
+  width: 32px; height: 32px; border-radius: 7px;
+  background: var(--accent-bg); border: 1px solid rgba(224,78,31,.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: var(--accent); flex-shrink: 0;
+}
+.fp-info { flex: 1; min-width: 0; }
+.fp-name { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.fp-size { font-size: 11px; color: var(--ink3); margin-top: 1px; font-family: var(--mono); }
+.remove-btn {
+  padding: 4px 10px; border-radius: 6px;
+  background: var(--red-bg); border: 1px solid rgba(220,38,38,.15);
+  color: var(--red); font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: var(--font); transition: all .15s;
+}
+.remove-btn:hover { background: rgba(220,38,38,.15); }
+
+.url-input-wrap {
+  display: flex; align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 9px; overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
+}
+.url-input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.url-icon { padding: 0 11px; color: var(--ink3); font-size: 14px; display: flex; align-items: center; }
+input[type="url"] {
+  flex: 1; padding: 10px 11px 10px 0;
+  border: none; background: transparent;
+  font-family: var(--mono); font-size: 13px; color: var(--ink); outline: none;
+}
+input[type="url"]::placeholder { color: var(--ink3); }
+
+.upload-btn {
+  width: 100%; padding: 10px;
+  background: linear-gradient(135deg, var(--accent), #a83410);
+  color: #fff; border: none; border-radius: 9px;
+  font-size: 13.5px; font-weight: 500; cursor: pointer;
+  font-family: var(--font);
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: opacity .15s, transform .1s;
+  box-shadow: 0 2px 10px var(--accent-glow);
+}
+.upload-btn:hover  { opacity: .88; }
+.upload-btn:active { transform: scale(.99); }
+.upload-btn i { font-size: 14px; }
+
+.status {
+  display: none; margin-top: 14px;
+  border: 1px solid var(--border2);
+  border-radius: 9px; overflow: hidden;
+}
+.status.show { display: block; }
+.status-header {
+  padding: 9px 12px; display: flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 500;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--ink2);
+}
+.status-header.loading { color: var(--accent); }
+.status-header.success { color: var(--green); background: var(--green-bg); }
+.status-header.error   { color: var(--red);   background: var(--red-bg); }
+.spinner {
+  width: 11px; height: 11px; flex-shrink: 0;
+  border: 2px solid var(--border2); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.status-body {
+  padding: 12px; background: var(--surface);
+  font-family: var(--mono); font-size: 12px; color: var(--ink2);
+  line-height: 1.65; max-height: 200px; overflow-y: auto;
+}
+
+.summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
+.sum-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 7px; padding: 10px;
+}
+.sum-label { font-size: 10.5px; color: var(--ink3); margin-bottom: 3px; }
+.sum-value { font-size: 18px; font-weight: 600; color: var(--accent); font-family: var(--mono); }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: 5px; font-size: 11px; font-weight: 500; margin-top: 4px;
+}
+.badge.success { background: var(--green-bg); color: var(--green); }
+.badge.warning { background: var(--yellow-bg); color: var(--yellow); }
+.badge.error   { background: var(--red-bg); color: var(--red); }
+
+.audit-panel { display: none; margin-top: 16px; }
+.audit-panel.show { display: block; }
+.audit-title {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--ink3); margin-bottom: 9px;
+  display: flex; align-items: center; gap: 5px;
+}
+.audit-title i { font-size: 11px; color: var(--accent); }
+.audit-grid {
+  display: grid; grid-template-columns: repeat(2,1fr);
+  gap: 6px; margin-bottom: 8px;
+}
+.audit-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px; padding: 9px 11px;
+}
+.audit-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+.audit-value { font-size: 12px; color: var(--ink); font-family: var(--mono); word-break: break-all; }
+.audit-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 6px; }
+.meta-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px; padding: 9px; text-align: center;
+}
+.meta-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: .05em; }
+.meta-value { font-size: 16px; font-weight: 600; color: var(--accent); margin-top: 3px; font-family: var(--mono); }
+.meta-value.small { font-size: 11px; }
+
+/* EXTRACTION MODAL */
 .extraction-modal {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,.85); backdrop-filter: blur(4px);
+  background: rgba(0,0,0,.45);
   display: none; align-items: center; justify-content: center;
   z-index: 1000; padding: 20px;
 }
 .extraction-modal.show { display: flex; }
 .extraction-container {
-  width: 100%; max-width: 800px; max-height: 90vh;
-  background: rgba(13,13,15,.95); border: 1px solid rgba(255,255,255,.08);
-  border-radius: 15px; display: flex; flex-direction: column;
-  overflow: hidden; box-shadow: 0 20px 80px rgba(0,0,0,.8);
+  width: 100%; max-width: 780px; max-height: 88vh;
+  background: #fff; border: 1px solid var(--border2);
+  border-radius: 14px; display: flex; flex-direction: column;
+  overflow: hidden; box-shadow: 0 12px 60px rgba(0,0,0,.18);
 }
 .extraction-header {
-  padding: 18px; border-bottom: 1px solid rgba(255,255,255,.08);
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
   display: flex; justify-content: space-between; align-items: center;
 }
-.extraction-header h2 {
-  font-size: 16px; font-weight: 600; color: var(--ink); margin: 0;
-}
+.extraction-header h2 { font-size: 15px; font-weight: 600; color: var(--ink); margin: 0; }
 .extraction-close {
-  background: none; border: none; color: var(--ink2); font-size: 20px;
-  cursor: pointer; padding: 0; width: 28px; height: 28px;
+  background: none; border: none; color: var(--ink2); font-size: 18px;
+  cursor: pointer; width: 26px; height: 26px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 6px; transition: background .15s, color .15s;
 }
-.extraction-close:hover { background: rgba(255,255,255,.08); color: var(--ink); }
+.extraction-close:hover { background: var(--surface2); color: var(--ink); }
+.extraction-content { flex: 1; overflow-y: auto; padding: 18px; }
 
-.extraction-content {
-  flex: 1; overflow-y: auto; padding: 20px;
-}
-
-/* Accordion */
-.step-accordion {
-  display: flex; flex-direction: column; gap: 10px;
-}
+.step-accordion { display: flex; flex-direction: column; gap: 8px; }
 .step-item {
-  border: 1px solid rgba(255,255,255,.08); border-radius: 10px;
-  background: rgba(255,255,255,.03); overflow: hidden;
+  border: 1px solid var(--border2); border-radius: 9px;
+  background: var(--surface); overflow: hidden;
 }
 .step-header {
-  padding: 13px 15px; cursor: pointer; display: flex;
-  align-items: center; gap: 12px; user-select: none;
+  padding: 12px 14px; cursor: pointer; display: flex;
+  align-items: center; gap: 11px; user-select: none;
   transition: background .15s; border: none;
   background: transparent; width: 100%; text-align: left;
   font-family: var(--font);
 }
-.step-header:hover { background: rgba(255,255,255,.05); }
+.step-header:hover { background: var(--surface2); }
 .step-status {
-  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  width: 19px; height: 19px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 600;
+  font-size: 10px; font-weight: 600;
 }
-.step-status.pending { background: rgba(255,255,255,.1); color: var(--ink2); }
+.step-status.pending { background: var(--surface2); color: var(--ink3); }
 .step-status.loading { background: var(--accent-bg); color: var(--accent); animation: spin .7s linear infinite; }
 .step-status.done { background: var(--green-bg); color: var(--green); }
 .step-status.error { background: var(--red-bg); color: var(--red); }
-.step-title {
-  flex: 1; font-size: 13px; font-weight: 500; color: var(--ink);
-}
-.step-chevron {
-  font-size: 13px; color: var(--ink2); transition: transform .2s;
-}
+.step-title { flex: 1; font-size: 13px; font-weight: 500; color: var(--ink); }
+.step-chevron { font-size: 12px; color: var(--ink3); transition: transform .2s; }
 .step-item.expanded .step-chevron { transform: rotate(90deg); }
 
 .step-body {
-  display: none; padding: 0 15px 15px; border-top: 1px solid rgba(255,255,255,.06);
-  color: var(--ink2); font-size: 12px; line-height: 1.6;
+  display: none; padding: 0 14px 14px; border-top: 1px solid var(--border);
+  color: var(--ink2); font-size: 12px; line-height: 1.6; background: #fff;
 }
 .step-item.expanded .step-body { display: block; }
-.step-content { margin-bottom: 10px; }
-.step-metric {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0;
-}
+.step-content { margin-bottom: 9px; }
+.step-metric { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin: 9px 0; }
 .metric {
-  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
-  border-radius: 8px; padding: 10px; text-align: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 7px; padding: 9px; text-align: center;
 }
-.metric-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; margin-bottom: 4px; }
-.metric-value { font-size: 15px; font-weight: 600; color: var(--accent); font-family: var(--mono); }
+.metric-label { font-size: 10px; color: var(--ink3); text-transform: uppercase; margin-bottom: 3px; }
+.metric-value { font-size: 14px; font-weight: 600; color: var(--accent); font-family: var(--mono); }
 
-/* Description panel */
 .description-panel {
-  display: none; margin: 15px 0; padding: 15px;
-  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
-  border-radius: 10px;
+  display: none; margin: 13px 0; padding: 13px;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 9px;
 }
 .description-panel.show { display: block; }
-.description-title {
-  font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase;
-  margin-bottom: 10px; letter-spacing: .05em;
-}
+.description-title { font-size: 11px; font-weight: 600; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; letter-spacing: .05em; }
 .description-text {
   font-size: 12px; color: var(--ink); line-height: 1.7;
-  max-height: 300px; overflow-y: auto; font-family: var(--mono);
-  background: rgba(0,0,0,.3); padding: 12px; border-radius: 8px;
+  max-height: 280px; overflow-y: auto; font-family: var(--mono);
+  background: var(--surface2); padding: 10px; border-radius: 7px;
 }
-.description-text::-webkit-scrollbar { width: 4px; }
-.description-text::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); }
 
-/* Chunk preview */
-.chunk-preview-list {
-  display: flex; flex-direction: column; gap: 10px; margin: 10px 0;
-}
+.chunk-preview-list { display: flex; flex-direction: column; gap: 8px; margin: 9px 0; }
 .chunk-item {
-  background: rgba(0,0,0,.3); border-left: 3px solid var(--accent);
-  padding: 10px 12px; border-radius: 6px; font-family: var(--mono);
-  font-size: 11px; color: var(--ink2); max-height: 80px; overflow: hidden;
+  background: var(--surface2); border-left: 3px solid var(--accent);
+  padding: 9px 11px; border-radius: 0 6px 6px 0; font-family: var(--mono);
+  font-size: 11px; color: var(--ink2); max-height: 76px; overflow: hidden;
 }
-.chunk-item strong {
-  display: block; color: var(--accent); margin-bottom: 6px; font-size: 10px;
-}
+.chunk-item strong { display: block; color: var(--accent); margin-bottom: 5px; font-size: 10px; }
 
-/* Action buttons */
-.step-actions {
-  display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;
-}
+.step-actions { display: flex; gap: 8px; margin-top: 11px; flex-wrap: wrap; }
 .btn-small {
-  padding: 8px 14px; border-radius: 7px; border: 1px solid rgba(255,255,255,.1);
+  padding: 7px 13px; border-radius: 7px; border: 1px solid var(--border2);
   font-size: 12px; font-weight: 500; cursor: pointer;
   font-family: var(--font); transition: all .15s;
-  background: rgba(255,255,255,.05); color: var(--ink);
+  background: var(--surface2); color: var(--ink);
 }
-.btn-small:hover { background: rgba(255,255,255,.08); }
+.btn-small:hover { background: var(--border); }
 .btn-small.primary {
-  background: linear-gradient(135deg, var(--accent), #c02808);
-  color: #fff; border-color: rgba(240,90,40,.3);
+  background: linear-gradient(135deg, var(--accent), #a83410);
+  color: #fff; border-color: rgba(224,78,31,.3);
 }
 .btn-small.primary:hover { opacity: .88; }
-.btn-small.danger {
-  background: var(--red-bg); color: var(--red); border-color: rgba(248,113,113,.2);
-}
-.btn-small.danger:hover { background: rgba(248,113,113,.18); }
-.btn-small:disabled {
-  opacity: .5; cursor: not-allowed;
-}
+.btn-small.danger { background: var(--red-bg); color: var(--red); border-color: rgba(220,38,38,.15); }
+.btn-small.danger:hover { background: rgba(220,38,38,.14); }
+.btn-small:disabled { opacity: .4; cursor: not-allowed; }
 
-/* Progress bar */
 .progress-bar {
-  width: 100%; height: 4px; background: rgba(255,255,255,.08);
-  border-radius: 2px; overflow: hidden; margin: 8px 0;
+  width: 100%; height: 3px; background: var(--border);
+  border-radius: 2px; overflow: hidden; margin: 7px 0;
 }
 .progress-fill {
-  height: 100%; background: linear-gradient(90deg, var(--accent), #c02808);
+  height: 100%; background: linear-gradient(90deg, var(--accent), #a83410);
   width: 0%; transition: width .3s ease;
 }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
 </style>
 </head>
 <body>
@@ -486,8 +439,8 @@ input[type="url"]::placeholder { color: var(--ink3); }
 <div class="extraction-modal" id="extraction-modal">
   <div class="extraction-container">
     <div class="extraction-header">
-      <h2>Object Extraction Workflow</h2>
-      <button class="extraction-close" onclick="closeExtraction()">✕</button>
+      <h2>Object extraction workflow</h2>
+      <button class="extraction-close" onclick="closeExtraction()"><i class="ti ti-x"></i></button>
     </div>
     <div class="extraction-content" id="extraction-content">
       <div class="step-accordion" id="steps-accordion"></div>
@@ -495,9 +448,32 @@ input[type="url"]::placeholder { color: var(--ink3); }
   </div>
 </div>
 
+<!-- Chunking Modal -->
+<div class="extraction-modal" id="chunking-modal">
+  <div class="extraction-container">
+    <div class="extraction-header">
+      <h2>Chunking strategy</h2>
+      <button onclick="document.getElementById('chunking-modal').classList.remove('show')" style="background:none;border:none;color:var(--ink2);font-size:18px;cursor:pointer;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:background .15s;">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+    <div style="padding:18px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px;" id="modal-strategy-options"></div>
+      <div style="padding:11px;background:var(--accent-bg);border:1px solid rgba(224,78,31,.15);border-radius:8px;font-size:12px;color:var(--ink2);margin-bottom:16px;" id="modal-strategy-description"></div>
+    </div>
+    <div style="padding:16px;border-top:1px solid var(--border);display:flex;gap:8px;">
+      <button style="flex:1;padding:10px;background:linear-gradient(135deg,var(--accent),#a83410);color:#fff;border:none;border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 2px 10px var(--accent-glow);" onclick="uploadWithChunkingStrategy()">
+        <i class="ti ti-upload"></i> Upload
+      </button>
+      <button style="padding:10px 16px;background:var(--surface2);color:var(--ink);border:1px solid var(--border2);border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font);" onclick="document.getElementById('chunking-modal').classList.remove('show')">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="shell">
 
-  <!-- Topbar -->
   <div class="topbar">
     <div class="topbar-logo"><i class="ti ti-database"></i></div>
     <span class="topbar-title">Ingestion</span>
@@ -505,17 +481,39 @@ input[type="url"]::placeholder { color: var(--ink3); }
 
   <div class="body">
 
-    <!-- Left: main content -->
+    <!-- LEFT MENU -->
+    <div class="left-menu">
+      <div class="menu-section">Source type</div>
+      <button class="menu-item active" data-tab="pdf">
+        <i class="ti ti-file-type-pdf"></i> PDF
+      </button>
+      <button class="menu-item" data-tab="docx">
+        <i class="ti ti-file-type-doc"></i> DOCX
+      </button>
+      <button class="menu-item" data-tab="image">
+        <i class="ti ti-photo"></i> Image
+      </button>
+      <button class="menu-item" data-tab="url">
+        <i class="ti ti-link"></i> URL
+      </button>
+
+      <div class="menu-section" style="margin-top:12px;">Actions</div>
+      <button class="menu-item" data-tab="sync">
+        <i class="ti ti-refresh"></i> VectorDB sync
+      </button>
+    </div>
+
+    <!-- MAIN -->
     <div class="main">
-      <div class="page-header">
-        <h1>Ingest Knowledge</h1>
-        <p>Upload documents or URLs to add them to your knowledge base</p>
-      </div>
 
       <!-- PDF -->
       <div id="pdf" class="tab-content active">
+        <div class="page-header">
+          <h1>Ingestion</h1>
+          <p>Upload a PDF to extract and index its content</p>
+        </div>
         <div class="form-group">
-          <label class="label">Upload PDF document</label>
+          <label class="label">PDF document</label>
           <div class="drop-zone" id="pdf-drop" onclick="document.getElementById('pdf-file').click()">
             <div class="dz-icon"><i class="ti ti-file-type-pdf"></i></div>
             <div class="dz-title">Drop your PDF here</div>
@@ -532,10 +530,9 @@ input[type="url"]::placeholder { color: var(--ink3); }
           <input type="file" id="pdf-file" accept=".pdf" onchange="handleFile('pdf', this.files[0])">
         </div>
         <button class="upload-btn" onclick="startPdfLiveExtraction()">
-          <i class="ti ti-sparkles"></i> Extract & Analyze
+          <i class="ti ti-sparkles"></i> Run
         </button>
-        <div id="pdf-live-panel" style="display: none; margin-top: 20px; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; overflow: hidden; background: rgba(18,18,20,.6);">
-        </div>
+        <div id="pdf-live-panel" style="display:none;margin-top:18px;border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:var(--surface);"></div>
         <div class="status" id="pdf-status">
           <div class="status-header" id="pdf-status-header"><div class="spinner"></div><span>Processing…</span></div>
           <div class="status-body" id="pdf-status-body"></div>
@@ -545,8 +542,12 @@ input[type="url"]::placeholder { color: var(--ink3); }
 
       <!-- DOCX -->
       <div id="docx" class="tab-content">
+        <div class="page-header">
+          <h1>Ingestion</h1>
+          <p>Upload a DOCX to extract and index its content</p>
+        </div>
         <div class="form-group">
-          <label class="label">Upload DOCX document</label>
+          <label class="label">DOCX document</label>
           <div class="drop-zone" id="docx-drop" onclick="document.getElementById('docx-file').click()">
             <div class="dz-icon"><i class="ti ti-file-type-doc"></i></div>
             <div class="dz-title">Drop your DOCX here</div>
@@ -563,7 +564,7 @@ input[type="url"]::placeholder { color: var(--ink3); }
           <input type="file" id="docx-file" accept=".docx" onchange="handleFile('docx', this.files[0])">
         </div>
         <button class="upload-btn" onclick="upload('docx')">
-          <i class="ti ti-upload"></i> Upload DOCX
+          <i class="ti ti-upload"></i> Upload
         </button>
         <div class="status" id="docx-status">
           <div class="status-header" id="docx-status-header"><div class="spinner"></div><span>Processing…</span></div>
@@ -572,10 +573,14 @@ input[type="url"]::placeholder { color: var(--ink3); }
         <div class="audit-panel" id="docx-audit"></div>
       </div>
 
-      <!-- Image -->
+      <!-- IMAGE -->
       <div id="image" class="tab-content">
+        <div class="page-header">
+          <h1>Ingestion</h1>
+          <p>Upload an image for OCR or vision-based extraction</p>
+        </div>
         <div class="form-group">
-          <label class="label">Upload Image (PNG, JPG, JPEG)</label>
+          <label class="label">Image (PNG, JPG, JPEG)</label>
           <div class="drop-zone" id="image-drop" onclick="document.getElementById('image-file').click()">
             <div class="dz-icon"><i class="ti ti-photo"></i></div>
             <div class="dz-title">Drop your image here</div>
@@ -591,50 +596,50 @@ input[type="url"]::placeholder { color: var(--ink3); }
           </div>
           <input type="file" id="image-file" accept="image/png,image/jpeg" onchange="handleFile('image', this.files[0])">
         </div>
-
         <div class="form-group">
-          <label class="label">Extraction Mode</label>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-            <div style="display: flex; align-items: center; gap: 8px; padding: 10px; background: rgba(255,255,255,.04); border-radius: 8px; border: 1px solid rgba(255,255,255,.08); cursor: pointer;" onclick="selectImageMode('text')">
-              <input type="radio" name="image-mode" value="text" id="mode-text" checked onclick="selectImageMode('text')" style="cursor: pointer;" />
-              <label for="mode-text" style="cursor: pointer; flex: 1; margin: 0; font-size: 13px; font-weight: 500;">
-                <div style="color: var(--ink);">Text Extraction</div>
-                <div style="font-size: 11px; color: var(--ink3); margin-top: 2px;">OCR from image</div>
+          <label class="label">Extraction mode</label>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:9px;">
+            <div style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--surface);border-radius:8px;border:1px solid var(--border2);cursor:pointer;" onclick="selectImageMode('text')">
+              <input type="radio" name="image-mode" value="text" id="mode-text" checked style="cursor:pointer;">
+              <label for="mode-text" style="cursor:pointer;flex:1;margin:0;font-size:13px;">
+                <div style="color:var(--ink);font-weight:500;">Text</div>
+                <div style="font-size:11px;color:var(--ink3);margin-top:1px;">OCR from image</div>
               </label>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px; padding: 10px; background: rgba(255,255,255,.04); border-radius: 8px; border: 1px solid rgba(255,255,255,.08); cursor: pointer;" onclick="selectImageMode('object')">
-              <input type="radio" name="image-mode" value="object" id="mode-object" onclick="selectImageMode('object')" style="cursor: pointer;" />
-              <label for="mode-object" style="cursor: pointer; flex: 1; margin: 0; font-size: 13px; font-weight: 500;">
-                <div style="color: var(--ink);">Object Extraction</div>
-                <div style="font-size: 11px; color: var(--ink3); margin-top: 2px;">Vision AI description</div>
+            <div style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--surface);border-radius:8px;border:1px solid var(--border2);cursor:pointer;" onclick="selectImageMode('object')">
+              <input type="radio" name="image-mode" value="object" id="mode-object" style="cursor:pointer;">
+              <label for="mode-object" style="cursor:pointer;flex:1;margin:0;font-size:13px;">
+                <div style="color:var(--ink);font-weight:500;">Object</div>
+                <div style="font-size:11px;color:var(--ink3);margin-top:1px;">Vision AI</div>
               </label>
             </div>
           </div>
         </div>
-
         <button class="upload-btn" onclick="upload('image')">
-          <i class="ti ti-upload"></i> Upload Image
+          <i class="ti ti-upload"></i> Upload
         </button>
         <div class="status" id="image-status">
           <div class="status-header" id="image-status-header"><div class="spinner"></div><span>Processing…</span></div>
           <div class="status-body" id="image-status-body"></div>
-        </div>
-        <div id="image-progress-steps" style="display: none; margin-top: 20px; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; overflow: hidden;">
         </div>
         <div class="audit-panel" id="image-audit"></div>
       </div>
 
       <!-- URL -->
       <div id="url" class="tab-content">
+        <div class="page-header">
+          <h1>Ingestion</h1>
+          <p>Enter a URL to scrape and index its content</p>
+        </div>
         <div class="form-group">
-          <label class="label">Enter URL to ingest</label>
+          <label class="label">URL</label>
           <div class="url-input-wrap">
             <div class="url-icon"><i class="ti ti-link"></i></div>
             <input type="url" id="url-input" placeholder="https://example.com" />
           </div>
         </div>
         <button class="upload-btn" onclick="upload('url')">
-          <i class="ti ti-upload"></i> Upload URL
+          <i class="ti ti-upload"></i> Upload
         </button>
         <div class="status" id="url-status">
           <div class="status-header" id="url-status-header"><div class="spinner"></div><span>Processing…</span></div>
@@ -643,64 +648,90 @@ input[type="url"]::placeholder { color: var(--ink3); }
         <div class="audit-panel" id="url-audit"></div>
       </div>
 
-      <!-- Sync Section -->
-      <div style="margin-top: 40px; padding-top: 28px; border-top: 1px solid rgba(255,255,255,.08);">
+      <!-- SYNC -->
+      <div id="sync" class="tab-content">
         <div class="page-header">
-          <h1>Synchronize Knowledge</h1>
-          <p>Ingest all new files and remove deleted files from Pinecone</p>
+          <h1>VectorDB sync</h1>
+          <p>Ingest new local files and remove deleted ones from Pinecone</p>
         </div>
-        
-        <!-- Chunking Strategy Selector -->
-        <div class="form-group">
-          <label class="label">Chunking Strategy</label>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;" id="strategy-options">
-            <!-- Populated by JavaScript -->
-          </div>
-          <div style="padding: 12px; background: rgba(240,90,40,.08); border: 1px solid rgba(240,90,40,.15); border-radius: 8px; font-size: 12px; color: var(--ink2); display: none;" id="strategy-description">
-            <!-- Populated by JavaScript -->
-          </div>
-        </div>
-        
-        <button class="upload-btn" onclick="startSync()" id="sync-btn">
-          <i class="ti ti-refresh"></i> Sync With Vector DB
+
+        <button class="upload-btn" onclick="startSync()" id="sync-btn" style="margin-bottom:16px;">
+          <i class="ti ti-refresh"></i> Sync
         </button>
-        
+
         <div class="status" id="sync-status">
           <div class="status-header" id="sync-status-header"><div class="spinner"></div><span>Syncing…</span></div>
           <div class="status-body" id="sync-status-body"></div>
         </div>
-        
-        <div class="sync-summary" id="sync-summary" style="display: none; margin-top: 18px;">
+
+        <div id="sync-summary" style="display:none;margin-top:16px;">
           <div class="summary">
-            <div class="sum-item"><div class="sum-label">New Files</div><div class="sum-value" id="sync-new">0</div></div>
+            <div class="sum-item"><div class="sum-label">New files</div><div class="sum-value" id="sync-new">0</div></div>
             <div class="sum-item"><div class="sum-label">Skipped</div><div class="sum-value" id="sync-skipped">0</div></div>
             <div class="sum-item"><div class="sum-label">Deleted</div><div class="sum-value" id="sync-deleted">0</div></div>
-            <div class="sum-item"><div class="sum-label">Chunks Added</div><div class="sum-value" id="sync-chunks">0</div></div>
-            <div class="sum-item"><div class="sum-label">Vectors Added</div><div class="sum-value" id="sync-vectors">0</div></div>
-            <div class="sum-item"><div class="sum-label">Time</div><div class="sum-value" id="sync-time">0ms</div></div>
+            <div class="sum-item"><div class="sum-label">Chunks added</div><div class="sum-value" id="sync-chunks">0</div></div>
+            <div class="sum-item"><div class="sum-label">Vectors added</div><div class="sum-value" id="sync-vectors">0</div></div>
+            <div class="sum-item"><div class="sum-label">Time</div><div class="sum-value" id="sync-time">—</div></div>
+          </div>
+        </div>
+
+        <!-- VCS-like Sync Status Compare Panel -->
+        <div id="sync-compare-panel" style="margin-top: 32px; border-top: 1px solid rgba(255,255,255,.08); padding-top: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--ink); display: flex; align-items: center; gap: 8px;">
+              <i class="ti ti-git-compare" style="color: var(--accent); font-size: 18px;"></i> Comparison Status (Local vs Vector DB)
+            </h3>
+            <button class="btn-small" onclick="loadSyncCompare()" id="compare-refresh-btn" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 4px; border-radius: 6px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);">
+              <i class="ti ti-refresh"></i> Refresh Compare
+            </button>
+          </div>
+          
+          <div id="compare-loader" style="padding: 30px; text-align: center; background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.05); border-radius: 10px;">
+            <div class="spinner" style="margin: 0 auto 12px;"></div>
+            <span style="font-size: 12px; color: var(--ink3);">Comparing local files with Pinecone index...</span>
+          </div>
+
+          <div id="compare-results" style="display: none; display: flex; flex-direction: column; gap: 16px;">
+            <!-- Category: New Files -->
+            <div class="compare-card" id="compare-new-card" style="background: rgba(46, 204, 113, 0.03); border: 1px solid rgba(46, 204, 113, 0.12); border-radius: 10px; padding: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 12px; font-weight: 600; color: #2ecc71; display: flex; align-items: center; gap: 6px;">
+                  <i class="ti ti-circle-plus"></i> Untracked / New Files (Pending Ingestion)
+                </span>
+                <span class="badge" id="compare-new-count" style="background: rgba(46, 204, 113, 0.15); color: #2ecc71; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;">0</span>
+              </div>
+              <div id="compare-new-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; font-family: var(--mono); font-size: 11px;">
+              </div>
+            </div>
+
+            <!-- Category: Deleted Files -->
+            <div class="compare-card" id="compare-deleted-card" style="background: rgba(231, 76, 60, 0.03); border: 1px solid rgba(231, 76, 60, 0.12); border-radius: 10px; padding: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 12px; font-weight: 600; color: #e74c3c; display: flex; align-items: center; gap: 6px;">
+                  <i class="ti ti-circle-minus"></i> Missing / Deleted Files (Pending Vector Cleanup)
+                </span>
+                <span class="badge" id="compare-deleted-count" style="background: rgba(231, 76, 60, 0.15); color: #e74c3c; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;">0</span>
+              </div>
+              <div id="compare-deleted-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; font-family: var(--mono); font-size: 11px;">
+              </div>
+            </div>
+
+            <!-- Category: In Sync Files -->
+            <div class="compare-card" id="compare-insync-card" style="background: rgba(255,255,255, 0.01); border: 1px solid rgba(255,255,255, 0.05); border-radius: 10px; padding: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 12px; font-weight: 600; color: var(--ink2); display: flex; align-items: center; gap: 6px;">
+                  <i class="ti ti-circle-check"></i> In-Sync / Already Indexed Files
+                </span>
+                <span class="badge" id="compare-insync-count" style="background: rgba(255,255,255, 0.05); color: var(--ink2); padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;">0</span>
+              </div>
+              <div id="compare-insync-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; font-family: var(--mono); font-size: 11px; color: var(--ink3);">
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
     </div><!-- /main -->
-
-    <!-- Right: vertical menu -->
-    <div class="right-menu">
-      <div class="menu-section">Source Type</div>
-      <button class="menu-item active" data-tab="pdf">
-        <i class="ti ti-file-type-pdf"></i> PDF
-      </button>
-      <button class="menu-item" data-tab="docx">
-        <i class="ti ti-file-type-doc"></i> DOCX
-      </button>
-      <button class="menu-item" data-tab="image">
-        <i class="ti ti-photo"></i> Image
-      </button>
-      <button class="menu-item" data-tab="url">
-        <i class="ti ti-link"></i> URL
-      </button>
-    </div>
-
   </div><!-- /body -->
 </div><!-- /shell -->
 
@@ -709,65 +740,21 @@ const API_URL = 'http://127.0.0.1:8001';
 const selectedFiles = {};
 let selectedStrategy = 'semantic';
 let strategyConfig = {};
+let currentExtractedText = '';
+let currentFilename = '';
+let currentSession = null;
+let currentSteps = {};
 
-// Load chunking strategies on page load
 async function loadChunkingStrategies() {
   try {
     const res = await fetch(`${API_URL}/config/chunking`);
     const data = await res.json();
     strategyConfig = data.available_strategies;
     selectedStrategy = data.current_strategy;
-    renderStrategySelector();
   } catch (err) {
     console.error('Failed to load chunking strategies:', err);
   }
 }
-
-function renderStrategySelector() {
-  const container = document.getElementById('strategy-options');
-  const descEl = document.getElementById('strategy-description');
-  
-  container.innerHTML = '';
-  
-  Object.entries(strategyConfig).forEach(([key, config]) => {
-    const isSelected = key === selectedStrategy;
-    const btn = document.createElement('div');
-    btn.style.cssText = `
-      display: flex; align-items: center; gap: 8px; padding: 12px;
-      background: ${isSelected ? 'rgba(240,90,40,.15)' : 'rgba(255,255,255,.04)'};
-      border: 1px solid ${isSelected ? 'rgba(240,90,40,.3)' : 'rgba(255,255,255,.08)'};
-      border-radius: 8px; cursor: pointer; transition: all 0.2s ease;
-    `;
-    btn.onmouseover = () => !isSelected && (btn.style.background = 'rgba(255,255,255,.06)');
-    btn.onmouseout = () => !isSelected && (btn.style.background = 'rgba(255,255,255,.04)');
-    btn.onclick = () => selectStrategy(key);
-    
-    btn.innerHTML = `
-      <input type="radio" name="chunking-strategy" value="${key}" ${isSelected ? 'checked' : ''} style="cursor: pointer;" />
-      <label style="cursor: pointer; flex: 1; margin: 0; font-size: 13px; font-weight: 500;">
-        <div style="color: var(--ink);">${config.name}</div>
-        <div style="font-size: 11px; color: var(--ink3); margin-top: 2px;">${config.description}</div>
-      </label>
-    `;
-    container.appendChild(btn);
-  });
-}
-
-function selectStrategy(strategy) {
-  selectedStrategy = strategy;
-  const config = strategyConfig[strategy];
-  const descEl = document.getElementById('strategy-description');
-  
-  descEl.style.display = 'block';
-  descEl.innerHTML = `
-    <strong>${config.name}</strong><br>
-    ${config.description}
-  `;
-  
-  renderStrategySelector();
-}
-
-// Initialize on load
 window.addEventListener('DOMContentLoaded', loadChunkingStrategies);
 
 document.querySelectorAll('.menu-item').forEach(item => {
@@ -775,11 +762,18 @@ document.querySelectorAll('.menu-item').forEach(item => {
     document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     item.classList.add('active');
-    document.getElementById(item.dataset.tab).classList.add('active');
+    const tabName = item.dataset.tab;
+    const tab = document.getElementById(tabName);
+    if (tab) tab.classList.add('active');
+    
+    // Auto load sync status comparison when entering sync tab
+    if (tabName === 'sync') {
+      loadSyncCompare();
+    }
   });
 });
 
-['pdf', 'docx', 'image'].forEach(type => {
+['pdf','docx','image'].forEach(type => {
   const zone = document.getElementById(`${type}-drop`);
   zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
   zone.addEventListener('dragleave', ()  => zone.classList.remove('drag-over'));
@@ -793,41 +787,37 @@ function handleFile(type, file) {
   if (!file) return;
   selectedFiles[type] = file;
   document.getElementById(`${type}-name`).textContent = file.name;
-  document.getElementById(`${type}-size`).textContent = `${(file.size / 1024).toFixed(1)} KB`;
+  document.getElementById(`${type}-size`).textContent = `${(file.size/1024).toFixed(1)} KB`;
   document.getElementById(`${type}-preview`).classList.add('show');
 }
-
 function removeFile(type) {
   delete selectedFiles[type];
   document.getElementById(`${type}-preview`).classList.remove('show');
   document.getElementById(`${type}-file`).value = '';
 }
 
+function selectImageMode(mode) {
+  document.getElementById('mode-text').checked = mode === 'text';
+  document.getElementById('mode-object').checked = mode === 'object';
+}
+
 async function upload(type) {
   if (type === 'image') {
     const mode = document.querySelector('input[name="image-mode"]:checked').value;
     if (mode === 'object') {
-      // Start object extraction workflow
-      if (!selectedFiles[type]) {
-        alert('Please select an image file');
-        return;
-      }
+      if (!selectedFiles[type]) { alert('Please select an image file'); return; }
       startObjectExtraction(selectedFiles[type]);
       return;
     }
   }
-
-  // Default flow for non-object extractions
   const statusEl = document.getElementById(`${type}-status`);
   const headerEl = document.getElementById(`${type}-status-header`);
   const bodyEl   = document.getElementById(`${type}-status-body`);
   const auditEl  = document.getElementById(`${type}-audit`);
-
   const formData = new FormData();
   formData.append('source_type', type);
   formData.append('extraction_type', type === 'image' ? 'text' : 'default');
   formData.append('chunking_strategy', selectedStrategy);
-
   if (type === 'url') {
     const url = document.getElementById('url-input').value.trim();
     if (!url) { showErr(statusEl, headerEl, bodyEl, 'Please enter a URL.'); return; }
@@ -836,37 +826,22 @@ async function upload(type) {
     if (!selectedFiles[type]) { showErr(statusEl, headerEl, bodyEl, 'Please select a file.'); return; }
     formData.append('file', selectedFiles[type]);
   }
-
   statusEl.classList.add('show');
   headerEl.className = 'status-header loading';
-  headerEl.innerHTML = '<div class="spinner"></div><span>Saving…</span>';
-  bodyEl.textContent = `Uploading file with ${selectedStrategy} chunking strategy…`;
+  headerEl.innerHTML = '<div class="spinner"></div><span>Uploading…</span>';
+  bodyEl.textContent = `Processing with ${selectedStrategy} chunking…`;
   auditEl.classList.remove('show');
-
   try {
     const res  = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
     const data = await res.json();
-
-    if (data.success) {
+    if (data.success || data.uploaded) {
       headerEl.className = 'status-header success';
-      headerEl.innerHTML = '<i class="ti ti-circle-check"></i><span>File saved successfully</span>';
-      bodyEl.innerHTML = `
-        <div style="padding: 10px 0; line-height: 1.8;">
-          <strong>${data.filename || data.filepath}</strong><br>
-          <span style="color: var(--ink3); font-size: 12px;">${data.size_bytes ? (data.size_bytes / 1024).toFixed(1) + ' KB' : ''}</span><br>
-          <br>
-          <span style="color: var(--accent);">✓ File saved to data folder</span><br>
-          <span style="color: var(--ink2); font-size: 12px; margin-top: 8px; display: block;">Click "Sync With Vector DB" to ingest this file</span>
-        </div>
-      `;
+      headerEl.innerHTML = '<i class="ti ti-circle-check"></i><span>Saved</span>';
+      bodyEl.innerHTML = `<strong>${data.filename || data.filepath || 'File'}</strong><br><span style="color:var(--green);">✓ Ready for extraction</span>`;
     } else if (data.error) {
       headerEl.className = 'status-header error';
       headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Error</span>';
       bodyEl.textContent = data.error;
-    } else {
-      headerEl.className = 'status-header error';
-      headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Failed</span>';
-      bodyEl.textContent = JSON.stringify(data, null, 2);
     }
   } catch (err) {
     showErr(statusEl, headerEl, bodyEl, `Connection error: ${err.message}`);
@@ -880,113 +855,304 @@ function showErr(statusEl, headerEl, bodyEl, msg) {
   bodyEl.textContent = msg;
 }
 
-function buildSummary(data) {
-  return `<div class="summary">
-    <div class="sum-item"><div class="sum-label">Chunks Created</div><div class="sum-value">${data.chunks || 0}</div></div>
-    <div class="sum-item"><div class="sum-label">Vectors Written</div><div class="sum-value">${data.vectors_written || 0}</div></div>
-    <div class="sum-item"><div class="sum-label">Duplicate</div><div class="sum-value">${data.duplicate ? 'Yes' : 'No'}</div>${data.duplicate ? '<span class="badge error">Rejected</span>' : '<span class="badge success">Unique</span>'}</div>
-    <div class="sum-item"><div class="sum-label">Data Masked</div><div class="sum-value">${data.masked ? 'Yes' : 'No'}</div>${data.masked ? '<span class="badge warning">Applied</span>' : ''}</div>
-    ${data.ocr_used ? '<div class="sum-item"><div class="sum-label">OCR Used</div><div class="sum-value">Yes</div><span class="badge warning">Fallback</span></div>' : ''}
-  </div>`;
-}
-
-function buildAudit(data) {
-  const reqId   = data.request_id ? data.request_id.substring(0, 8) + '…' : '—';
-  const time    = data.processing_time_ms ? `${data.processing_time_ms}ms` : '—';
-  const chars   = data.extraction?.chars ?? '—';
-  const ocr     = data.extraction?.ocr_used ? '✓ Yes' : '✗ No';
-  const masked  = data.extraction?.masked ? '✓ Yes' : '✗ No';
-  const chunks  = data.chunking?.total_chunks || data.chunks || 0;
-  const vectors = data.pinecone?.vectors_written || 0;
-  const pcone   = data.pinecone?.status === 'success' ? '✓ Success' : data.uploaded ? '—' : '✗ Failed';
-  const hash    = data.metadata?.hash ? data.metadata.hash.substring(0,12)+'…' : (data.duplicate?.incoming_hash ? data.duplicate.incoming_hash.substring(0,12)+'…' : '—');
-  const dup     = data.duplicate?.status ? '⚠ Duplicate' : '✓ Unique';
-
-  let dupSection = '';
-  if (data.duplicate?.status) {
-    const dupType  = data.duplicate.type === 'exact_hash_match' ? 'Exact Hash Match' : 'Similarity Threshold';
-    const inHash   = data.duplicate.incoming_hash ? data.duplicate.incoming_hash.substring(0,12)+'…' : '—';
-    const exHash   = data.duplicate.existing_hash ? data.duplicate.existing_hash.substring(0,12)+'…' : '—';
-    const matchFile= data.duplicate.matched_file || data.duplicate.existing_metadata?.filename || '—';
-    const matchChunk= data.duplicate.matched_chunk ?? data.duplicate.existing_metadata?.chunk_index ?? '—';
-    const matchTime= data.duplicate.matched_upload_time || data.duplicate.existing_metadata?.upload_time || '—';
-    const matchSource= data.duplicate.matched_source || data.duplicate.existing_metadata?.source || '—';
-    const vectorId = data.duplicate.existing_vector_id ? data.duplicate.existing_vector_id.substring(0,12)+'…' : '—';
-    dupSection = `<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)">
-      <div class="audit-title" style="margin-bottom:8px"><i class="ti ti-alert-triangle"></i> Duplicate Details</div>
-      <div class="audit-grid">
-        <div class="audit-item"><div class="audit-label">Type</div><div class="audit-value">${dupType}</div></div>
-        <div class="audit-item"><div class="audit-label">Incoming Hash</div><div class="audit-value" style="font-size:11px">${inHash}</div></div>
-        <div class="audit-item"><div class="audit-label">Existing Hash</div><div class="audit-value" style="font-size:11px">${exHash}</div></div>
-        <div class="audit-item"><div class="audit-label">Matched File</div><div class="audit-value">${matchFile}</div></div>
-        <div class="audit-item"><div class="audit-label">Matched Chunk</div><div class="audit-value">${matchChunk}</div></div>
-        <div class="audit-item"><div class="audit-label">Matched Upload</div><div class="audit-value" style="font-size:11px">${matchTime}</div></div>
-        <div class="audit-item"><div class="audit-label">Source</div><div class="audit-value">${matchSource}</div></div>
-        <div class="audit-item"><div class="audit-label">Vector ID</div><div class="audit-value" style="font-size:11px">${vectorId}</div></div>
-      </div>
-    </div>`;
+async function startSync() {
+  const statusEl  = document.getElementById('sync-status');
+  const headerEl  = document.getElementById('sync-status-header');
+  const bodyEl    = document.getElementById('sync-status-body');
+  const summaryEl = document.getElementById('sync-summary');
+  const syncBtn   = document.getElementById('sync-btn');
+  syncBtn.disabled = true;
+  statusEl.classList.add('show');
+  headerEl.className = 'status-header loading';
+  headerEl.innerHTML = '<div class="spinner"></div><span>Syncing…</span>';
+  bodyEl.textContent = `Running sync with ${selectedStrategy} chunking…`;
+  summaryEl.style.display = 'none';
+  try {
+    const formData = new FormData();
+    formData.append('chunking_strategy', selectedStrategy);
+    const res  = await fetch(`${API_URL}/sync`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      headerEl.className = 'status-header success';
+      headerEl.innerHTML = '<i class="ti ti-circle-check"></i><span>Sync complete</span>';
+      bodyEl.innerHTML = `<div style="padding:8px 0;line-height:1.8;">
+        <span style="color:var(--green);">✓ New: ${data.new_files_ingested}</span><br>
+        <span style="color:var(--ink2);">⊙ Skipped: ${data.existing_files_skipped}</span><br>
+        <span style="color:var(--red);">✕ Deleted: ${data.deleted_files_removed}</span><br>
+        <span style="color:var(--ink3);font-size:11px;">Time: ${data.processing_time_ms}ms</span>
+        ${data.errors && data.errors.length > 0 ? `<br><span style="color:var(--red);">⚠ ${data.errors.join(', ')}</span>` : ''}
+      </div>`;
+      document.getElementById('sync-new').textContent     = data.new_files_ingested;
+      document.getElementById('sync-skipped').textContent = data.existing_files_skipped;
+      document.getElementById('sync-deleted').textContent = data.deleted_files_removed;
+      document.getElementById('sync-chunks').textContent  = data.chunks_added;
+      document.getElementById('sync-vectors').textContent = data.vectors_added;
+      document.getElementById('sync-time').textContent    = data.processing_time_ms + 'ms';
+      summaryEl.style.display = 'block';
+      
+      // Reload comparison status to reflect completed changes
+      await loadSyncCompare();
+    } else {
+      headerEl.className = 'status-header error';
+      headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Failed</span>';
+      bodyEl.textContent = data.error || 'Unknown error';
+    }
+  } catch (err) {
+    headerEl.className = 'status-header error';
+    headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Connection error</span>';
+    bodyEl.textContent = err.message;
+  } finally {
+    syncBtn.disabled = false;
   }
-
-  return `
-    <div class="audit-title"><i class="ti ti-eye"></i> Ingestion Audit</div>
-    <div class="audit-grid">
-      <div class="audit-item"><div class="audit-label">Upload Status</div><div class="audit-value">${data.uploaded ? '✓ Uploaded' : data.error ? '✗ Error' : '✗ Rejected'}</div></div>
-      <div class="audit-item"><div class="audit-label">Processing Time</div><div class="audit-value">${time}</div></div>
-      <div class="audit-item"><div class="audit-label">Extraction Chars</div><div class="audit-value">${chars}</div></div>
-      <div class="audit-item"><div class="audit-label">OCR Used</div><div class="audit-value">${ocr}</div></div>
-      <div class="audit-item"><div class="audit-label">SHA256 Hash</div><div class="audit-value" style="font-size:11px">${hash}</div></div>
-      <div class="audit-item"><div class="audit-label">Duplicate Check</div><div class="audit-value">${dup}</div></div>
-      <div class="audit-item"><div class="audit-label">Data Masked</div><div class="audit-value">${masked}</div></div>
-      <div class="audit-item"><div class="audit-label">Pinecone Status</div><div class="audit-value">${pcone}</div></div>
-    </div>
-    <div class="audit-meta">
-      <div class="meta-stat"><div class="meta-label">Chunks</div><div class="meta-value">${chunks}</div></div>
-      <div class="meta-stat"><div class="meta-label">Vectors</div><div class="meta-value">${vectors}</div></div>
-      <div class="meta-stat"><div class="meta-label">Request ID</div><div class="meta-value small">${reqId}</div></div>
-    </div>
-    ${dupSection}`;
 }
 
-function selectImageMode(mode) {
-  document.getElementById('mode-text').checked = mode === 'text';
-  document.getElementById('mode-object').checked = mode === 'object';
-}
-
-// ============ OBJECT EXTRACTION WORKFLOW ============
-
-let currentSession = null;
-let currentSteps = {};
-
-async function startObjectExtraction(file) {
-  // Open modal and start extraction
-  document.getElementById('extraction-modal').classList.add('show');
+async function loadSyncCompare() {
+  const loader = document.getElementById('compare-loader');
+  const results = document.getElementById('compare-results');
+  const refreshBtn = document.getElementById('compare-refresh-btn');
   
-  const formData = new FormData();
-  formData.append('file', file);
+  if (refreshBtn) refreshBtn.disabled = true;
+  if (loader) loader.style.display = 'block';
+  if (results) results.style.display = 'none';
   
   try {
-    const res = await fetch(`${API_URL}/image/start`, { method: 'POST', body: formData });
+    const res = await fetch(`${API_URL}/sync/compare`);
     const data = await res.json();
     
+    if (loader) loader.style.display = 'none';
+    if (results) results.style.display = 'flex';
+    
     if (!data.success) {
-      showExtractionError(data.error || 'Failed to save image');
+      console.error("Failed to compare:", data.error);
       return;
     }
     
+    // 1. Render New Files
+    const newCount = document.getElementById('compare-new-count');
+    const newList = document.getElementById('compare-new-list');
+    newCount.textContent = data.new_files.length;
+    newList.innerHTML = '';
+    if (data.new_files.length === 0) {
+      newList.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--ink3); font-style: italic; background: rgba(255,255,255,0.01); border-radius: 6px; border: 1px dashed rgba(255,255,255,0.05);">No untracked or new files to ingest</div>';
+    } else {
+      data.new_files.forEach(file => {
+        newList.innerHTML += `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 12px; background: rgba(46, 204, 113, 0.05); border-radius: 6px; border-left: 3px solid #2ecc71; color: var(--ink2);">
+            <span style="word-break: break-all; text-align: left;">${file}</span>
+            <span style="color:#2ecc71; font-weight:bold; flex-shrink: 0; margin-left: 8px;">ADD</span>
+          </div>
+        `;
+      });
+    }
+    
+    // 2. Render Deleted Files
+    const delCount = document.getElementById('compare-deleted-count');
+    const delList = document.getElementById('compare-deleted-list');
+    delCount.textContent = data.deleted_files.length;
+    delList.innerHTML = '';
+    if (data.deleted_files.length === 0) {
+      delList.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--ink3); font-style: italic; background: rgba(255,255,255,0.01); border-radius: 6px; border: 1px dashed rgba(255,255,255,0.05);">No deleted files pending cleanup</div>';
+    } else {
+      data.deleted_files.forEach(file => {
+        delList.innerHTML += `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 12px; background: rgba(231, 76, 60, 0.05); border-radius: 6px; border-left: 3px solid #e74c3c; color: var(--ink2);">
+            <span style="word-break: break-all; text-align: left;">${file}</span>
+            <span style="color:#e74c3c; font-weight:bold; flex-shrink: 0; margin-left: 8px;">DELETE</span>
+          </div>
+        `;
+      });
+    }
+    
+    // 3. Render In Sync Files
+    const inSyncCount = document.getElementById('compare-insync-count');
+    const inSyncList = document.getElementById('compare-insync-list');
+    inSyncCount.textContent = data.in_sync_files.length;
+    inSyncList.innerHTML = '';
+    if (data.in_sync_files.length === 0) {
+      inSyncList.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--ink3); font-style: italic; background: rgba(255,255,255,0.01); border-radius: 6px; border: 1px dashed rgba(255,255,255,0.05);">No synced files found</div>';
+    } else {
+      data.in_sync_files.forEach(file => {
+        inSyncList.innerHTML += `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 12px; background: rgba(255,255,255, 0.02); border-radius: 6px; border-left: 3px solid var(--ink3); color: var(--ink3);">
+            <span style="word-break: break-all; text-align: left;">${file}</span>
+            <span style="color:var(--ink3); flex-shrink: 0; margin-left: 8px; display: flex; align-items: center; gap: 4px;"><i class="ti ti-check" style="font-size: 13px;"></i> SYNCED</span>
+          </div>
+        `;
+      });
+    }
+  } catch (err) {
+    if (loader) loader.style.display = 'none';
+    console.error("Compare error:", err);
+  } finally {
+    if (refreshBtn) refreshBtn.disabled = false;
+  }
+}
+
+async function startPdfLiveExtraction() {
+  if (!selectedFiles['pdf']) { alert('Please select a PDF file'); return; }
+  const panel = document.getElementById('pdf-live-panel');
+  panel.style.display = 'block';
+  panel.innerHTML = `<div style="padding:18px;text-align:center;"><div class="spinner"></div><div style="color:var(--ink2);margin-top:10px;font-size:13px;">Extracting pages…</div></div>`;
+  const formData = new FormData();
+  formData.append('file', selectedFiles['pdf']);
+  try {
+    const res  = await fetch(`${API_URL}/pdf/live-extract`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!data.success) {
+      panel.innerHTML = `<div style="padding:16px;color:var(--red);background:var(--red-bg);border-radius:8px;"><strong>Error:</strong> ${data.error || 'Failed'}</div>`;
+      return;
+    }
+    renderPdfExtraction(data);
+  } catch (err) {
+    panel.innerHTML = `<div style="padding:16px;color:var(--red);background:var(--red-bg);border-radius:8px;"><strong>Connection error:</strong> ${err.message}</div>`;
+  }
+}
+
+function renderPdfExtraction(data) {
+  const panel = document.getElementById('pdf-live-panel');
+  let allText = '';
+  data.pages.forEach(p => { if (p.text) allText += p.text + '\n\n'; });
+  currentExtractedText = allText;
+  currentFilename = data.filename || 'document';
+  let html = `<div style="padding:16px;border-bottom:1px solid var(--border);">
+    <div style="font-weight:600;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:9px;">Extraction complete</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+      <div style="padding:9px;background:var(--green-bg);border-radius:6px;"><div style="font-size:11px;color:var(--ink2);margin-bottom:3px;">Pages</div><div style="font-size:15px;font-weight:600;color:var(--green);">${data.total_pages||0}</div></div>
+      <div style="padding:9px;background:var(--yellow-bg);border-radius:6px;"><div style="font-size:11px;color:var(--ink2);margin-bottom:3px;">Images</div><div style="font-size:15px;font-weight:600;color:var(--yellow);">${data.total_images||0}</div></div>
+      <div style="padding:9px;background:var(--accent-bg);border-radius:6px;"><div style="font-size:11px;color:var(--ink2);margin-bottom:3px;">Characters</div><div style="font-size:13px;font-weight:600;color:var(--accent);">${allText.length.toLocaleString()}</div></div>
+    </div>
+  </div>`;
+  data.pages.forEach(p => { html += renderPdfPage(p, data.total_pages||0); });
+  html += `<div style="padding:14px;border-top:1px solid var(--border);display:flex;gap:8px;">
+    <button style="flex:1;padding:10px;background:linear-gradient(135deg,var(--accent),#a83410);color:#fff;border:none;border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 2px 10px var(--accent-glow);" onclick="continueToPinecone()">
+      <i class="ti ti-check"></i> Continue
+    </button>
+    <button style="padding:10px 14px;background:var(--surface2);color:var(--ink);border:1px solid var(--border2);border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font);" onclick="document.getElementById('pdf-live-panel').style.display='none'">
+      Close
+    </button>
+  </div>`;
+  panel.innerHTML = html;
+}
+
+function renderPdfPage(page, total) {
+  const text = page.text || '';
+  const images = page.images || [];
+  let html = `<div style="padding:16px;border-top:1px solid var(--border);">
+    <div style="color:var(--accent);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Page ${page.page||'?'} of ${total}</div>`;
+  if (text) {
+    html += `<div style="background:var(--surface);padding:11px;border-radius:6px;margin-bottom:10px;max-height:160px;overflow-y:auto;border:1px solid var(--border);">
+      <div style="font-size:11px;color:var(--ink2);margin-bottom:6px;font-weight:500;">Extracted text</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--ink);line-height:1.5;white-space:pre-wrap;word-break:break-word;">${text.substring(0,350)}${text.length>350?'…':''}</div>
+      <div style="font-size:10px;color:var(--ink3);margin-top:6px;">${text.length} chars</div>
+    </div>`;
+  }
+  if (images.length > 0) {
+    html += `<div style="margin-bottom:10px;"><div style="font-size:11px;color:var(--yellow);font-weight:500;margin-bottom:7px;display:flex;align-items:center;gap:5px;"><i class="ti ti-photo"></i>${images.length} image${images.length>1?'s':''}</div>`;
+    images.forEach((img,i) => {
+      html += `<div style="background:var(--surface);padding:9px;border-radius:6px;margin-bottom:7px;border:1px solid var(--border);">
+        <div style="font-size:11px;color:var(--ink2);font-weight:500;margin-bottom:5px;">Image ${i+1} — ${img.dimensions||'unknown'}</div>
+        <div style="font-size:12px;color:var(--ink);line-height:1.5;max-height:90px;overflow-y:auto;">${(img.description||'').substring(0,200)}${img.description&&img.description.length>200?'…':''}</div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:4px;">via ${img.model||'groq'}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function continueToPinecone() {
+  document.getElementById('chunking-modal').classList.add('show');
+  populateChunkingModal();
+}
+
+function populateChunkingModal() {
+  const container = document.getElementById('modal-strategy-options');
+  const strategies = {
+    'semantic':  { name: 'Semantic',   desc: 'Groups by meaning. Best quality.' },
+    'recursive': { name: 'Recursive',  desc: 'Hierarchical splitting. Balanced.' },
+    'simple':    { name: 'Simple',     desc: 'Fixed-size word chunks. Fastest.' }
+  };
+  container.innerHTML = Object.entries(strategies).map(([key, val]) => `
+    <div onclick="selectChunkingStrategy('${key}')" style="padding:12px;border-radius:9px;border:2px solid ${selectedStrategy===key?'var(--accent)':'var(--border2)'};background:${selectedStrategy===key?'var(--accent-bg)':'var(--surface)'};cursor:pointer;transition:all .15s;">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+        <input type="radio" name="chunk-strategy" value="${key}" ${selectedStrategy===key?'checked':''} style="cursor:pointer;">
+        <div style="font-weight:500;color:var(--ink);font-size:13px;">${val.name}</div>
+      </div>
+      <div style="font-size:11px;color:var(--ink2);margin-left:22px;">${val.desc}</div>
+    </div>
+  `).join('');
+  const s = strategies[selectedStrategy];
+  document.getElementById('modal-strategy-description').innerHTML = `<strong>${s.name}</strong> — ${s.desc}`;
+}
+
+function selectChunkingStrategy(strategy) {
+  selectedStrategy = strategy;
+  populateChunkingModal();
+}
+
+async function uploadWithChunkingStrategy() {
+  document.getElementById('chunking-modal').classList.remove('show');
+  if (!currentExtractedText.trim()) { alert('No extracted text. Please extract the PDF first.'); return; }
+  const panel = document.getElementById('pdf-live-panel');
+  panel.style.display = 'block';
+  panel.innerHTML = `<div style="padding:18px;text-align:center;"><div class="spinner"></div><div style="color:var(--ink2);margin-top:10px;font-size:13px;">Chunking with <strong>${selectedStrategy}</strong>…</div></div>`;
+  try {
+    const previewForm = new FormData();
+    previewForm.append('extracted_text', currentExtractedText);
+    previewForm.append('chunking_strategy', selectedStrategy);
+    previewForm.append('filename', currentFilename);
+    const previewRes  = await fetch(`${API_URL}/preview-chunks`, { method: 'POST', body: previewForm });
+    const previewData = await previewRes.json();
+    if (!previewData.success) {
+      panel.innerHTML = `<div style="padding:16px;color:var(--red);background:var(--red-bg);border-radius:8px;"><strong>Chunking error:</strong> ${previewData.error}</div>`;
+      return;
+    }
+    panel.innerHTML = `<div style="padding:18px;text-align:center;"><div class="spinner"></div><div style="color:var(--ink2);margin-top:10px;font-size:13px;">Uploading ${previewData.total_chunks} chunks…</div></div>`;
+    const uploadForm = new FormData();
+    uploadForm.append('session_id', previewData.session_id);
+    uploadForm.append('source_type', 'pdf');
+    uploadForm.append('filename', currentFilename);
+    const uploadRes  = await fetch(`${API_URL}/upload-extracted`, { method: 'POST', body: uploadForm });
+    const uploadData = await uploadRes.json();
+    if (!uploadData.success) {
+      panel.innerHTML = `<div style="padding:16px;color:var(--red);background:var(--red-bg);border-radius:8px;"><strong>Upload error:</strong> ${uploadData.error}</div>`;
+      return;
+    }
+    panel.innerHTML = `<div style="padding:18px;">
+      <div style="color:var(--green);font-weight:600;font-size:14px;margin-bottom:11px;display:flex;align-items:center;gap:6px;"><i class="ti ti-circle-check"></i> Done</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+        <div style="padding:9px;background:var(--green-bg);border-radius:6px;"><div style="font-size:11px;color:var(--ink2);margin-bottom:3px;">Chunks</div><div style="font-size:17px;font-weight:600;color:var(--green);">${uploadData.total_chunks||0}</div></div>
+        <div style="padding:9px;background:var(--accent-bg);border-radius:6px;"><div style="font-size:11px;color:var(--ink2);margin-bottom:3px;">Vectors</div><div style="font-size:17px;font-weight:600;color:var(--accent);">${uploadData.vectors_written||0}</div></div>
+        <div style="padding:9px;background:var(--surface2);border-radius:6px;"><div style="font-size:11px;color:var(--ink2);margin-bottom:3px;">Strategy</div><div style="font-size:12px;font-weight:600;color:var(--ink);text-transform:capitalize;">${uploadData.strategy||selectedStrategy}</div></div>
+      </div>
+    </div>`;
+    currentExtractedText = '';
+    currentFilename = '';
+  } catch (err) {
+    panel.innerHTML = `<div style="padding:16px;color:var(--red);background:var(--red-bg);border-radius:8px;"><strong>Failed:</strong> ${err.message}</div>`;
+  }
+}
+
+async function startObjectExtraction(file) {
+  document.getElementById('extraction-modal').classList.add('show');
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const res  = await fetch(`${API_URL}/image/start`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!data.success) { showExtractionError(data.error || 'Failed to save image'); return; }
     currentSession = data.session_id;
     currentSteps = {
-      'save': { status: 'done', data: data },
-      'encode': { status: 'pending', data: null },
+      'save':     { status: 'done',    data: data },
+      'encode':   { status: 'pending', data: null },
       'describe': { status: 'pending', data: null },
-      'chunks': { status: 'pending', data: null },
-      'embed': { status: 'pending', data: null },
-      'store': { status: 'pending', data: null }
+      'chunks':   { status: 'pending', data: null },
+      'embed':    { status: 'pending', data: null },
+      'store':    { status: 'pending', data: null }
     };
-    
     renderSteps();
     expandStep('save');
-    
-    // Auto-proceed to encode
     await encodeImageStep();
   } catch (err) {
     showExtractionError(err.message);
@@ -994,621 +1160,171 @@ async function startObjectExtraction(file) {
 }
 
 function renderSteps() {
-  const accordion = document.getElementById('steps-accordion');
-  accordion.innerHTML = `
-    ${createStepItem('save', '1. Save Original', 'Saving image to storage...')}
-    ${createStepItem('encode', '2. Convert to Base64', 'Encoding image...')}
-    ${createStepItem('describe', '3. Vision Analysis', 'Analyzing image with AI...')}
-    ${createStepItem('chunks', '5. Preview Chunks', 'Generating text chunks...')}
-    ${createStepItem('embed', '6. Generate Embeddings', 'Creating vector embeddings...')}
-    ${createStepItem('store', '7. Store in Pinecone', 'Uploading to knowledge base...')}
-  `;
-  
-  // Attach click handlers
+  document.getElementById('steps-accordion').innerHTML = [
+    ['save',    '1. Save original',       'Saving image…'],
+    ['encode',  '2. Base64 encode',       'Encoding image…'],
+    ['describe','3. Vision analysis',     'Analyzing with AI…'],
+    ['chunks',  '4. Preview chunks',      'Generating chunks…'],
+    ['embed',   '5. Generate embeddings', 'Creating vectors…'],
+    ['store',   '6. Store in Pinecone',   'Uploading…'],
+  ].map(([id, title, desc]) => createStepItem(id, title, desc)).join('');
   document.querySelectorAll('.step-header').forEach(el => {
     el.addEventListener('click', function() {
-      const item = this.closest('.step-item');
-      item.classList.toggle('expanded');
+      this.closest('.step-item').classList.toggle('expanded');
     });
   });
 }
 
-function createStepItem(id, title, description) {
+function createStepItem(id, title, desc) {
   const step = currentSteps[id] || { status: 'pending', data: null };
-  const statusClass = step.status;
-  const statusIcon = {
-    'pending': '○',
-    'loading': '⟳',
-    'done': '✓',
-    'error': '✕'
-  }[statusClass] || '○';
-  
-  return `
-    <div class="step-item" id="step-${id}">
-      <button class="step-header">
-        <div class="step-status ${statusClass}">${statusIcon}</div>
-        <div class="step-title">${title}</div>
-        <div class="step-chevron">›</div>
-      </button>
-      <div class="step-body">
-        <div class="step-content">
-          <p>${description}</p>
-          <div class="progress-bar"><div class="progress-fill" style="width: ${statusClass === 'done' ? '100' : statusClass === 'loading' ? '60' : '0'}%"></div></div>
-          ${renderStepContent(id)}
-        </div>
+  const icons = { pending:'○', loading:'⟳', done:'✓', error:'✕' };
+  return `<div class="step-item" id="step-${id}">
+    <button class="step-header">
+      <div class="step-status ${step.status}">${icons[step.status]||'○'}</div>
+      <div class="step-title">${title}</div>
+      <div class="step-chevron">›</div>
+    </button>
+    <div class="step-body">
+      <div class="step-content">
+        <p style="margin:10px 0 6px;color:var(--ink2);font-size:12px;">${desc}</p>
+        <div class="progress-bar"><div class="progress-fill" style="width:${step.status==='done'?100:step.status==='loading'?60:0}%"></div></div>
+        ${renderStepContent(id)}
       </div>
     </div>
-  `;
+  </div>`;
 }
 
 function renderStepContent(id) {
   const step = currentSteps[id];
   if (!step || !step.data) return '';
-  
   const data = step.data;
-  
   switch(id) {
     case 'save':
-      return `
-        <div class="step-metric">
-          <div class="metric"><div class="metric-label">Location</div><div class="metric-value small">${data.filename}</div></div>
-          <div class="metric"><div class="metric-label">Size</div><div class="metric-value">${(data.size_bytes / 1024).toFixed(1)}KB</div></div>
-        </div>
-      `;
-      
+      return `<div class="step-metric"><div class="metric"><div class="metric-label">File</div><div class="metric-value" style="font-size:11px;">${data.filename||'—'}</div></div><div class="metric"><div class="metric-label">Size</div><div class="metric-value">${data.size_bytes?(data.size_bytes/1024).toFixed(1)+'KB':'—'}</div></div></div>`;
     case 'encode':
-      return `
-        <div class="step-metric">
-          <div class="metric"><div class="metric-label">Base64 Length</div><div class="metric-value">${data.base64_length || 0}</div></div>
-          <div class="metric"><div class="metric-label">File</div><div class="metric-value small">${data.filename || '—'}</div></div>
-        </div>
-      `;
-      
+      return `<div class="step-metric"><div class="metric"><div class="metric-label">Base64 length</div><div class="metric-value">${data.base64_length||0}</div></div><div class="metric"><div class="metric-label">File</div><div class="metric-value" style="font-size:11px;">${data.filename||'—'}</div></div></div>`;
     case 'describe':
-      // Handle error response
       if (data.error) {
-        const debug = data.debug || {};
-        return `
-          <div style="background: var(--red-bg); border: 1px solid rgba(248,113,113,.2); border-radius: 8px; padding: 12px; color: var(--red); font-size: 12px; margin: 10px 0; line-height: 1.6;">
-            <strong>Error:</strong> ${data.error}
-          </div>
-          <div class="step-metric">
-            <div class="metric"><div class="metric-label">Base64 Length</div><div class="metric-value">${debug.base64_length || 0}</div></div>
-            <div class="metric"><div class="metric-label">MIME Type</div><div class="metric-value small">${debug.mime_type || '—'}</div></div>
-            <div class="metric"><div class="metric-label">Model</div><div class="metric-value small">${debug.model || '—'}</div></div>
-            <div class="metric"><div class="metric-label">Status Code</div><div class="metric-value small">${debug.status_code || '—'}</div></div>
-          </div>
-          ${debug.response_body ? `<div style="background: rgba(0,0,0,.3); padding: 10px; border-radius: 6px; font-family: var(--mono); font-size: 11px; color: var(--ink2); max-height: 120px; overflow-y: auto; margin-top: 10px;"><strong>Raw Response:</strong><br/>${debug.response_body}</div>` : ''}
-          <div class="step-actions">
-            <button class="btn-small primary" onclick="describeImageStep()">Retry</button>
-            <button class="btn-small danger" onclick="closeExtraction()">Cancel</button>
-          </div>
-        `;
+        return `<div style="background:var(--red-bg);border:1px solid rgba(220,38,38,.15);border-radius:7px;padding:11px;color:var(--red);font-size:12px;margin:9px 0;line-height:1.6;"><strong>Error:</strong> ${data.error}</div>
+          <div class="step-actions"><button class="btn-small primary" onclick="describeImageStep()">Retry</button><button class="btn-small danger" onclick="closeExtraction()">Cancel</button></div>`;
       }
-      
-      // Handle success response with description
       if (data.description) {
-        const debug = data.debug || {};
-        const isValid = data.description && !data.description.startsWith('Image analyzed');
-        return `
-          <div class="description-panel show">
-            <div class="description-title">Generated Description</div>
-            <div class="description-text">${data.description}</div>
-          </div>
-          
-          <div style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 8px; padding: 12px; margin: 10px 0;">
-            <div style="font-size: 10px; font-weight: 600; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; letter-spacing: .05em;">Debug Info</div>
-            <div class="step-metric">
-              <div class="metric"><div class="metric-label">Base64 Length</div><div class="metric-value">${debug.base64_length || 0}</div></div>
-              <div class="metric"><div class="metric-label">MIME Type</div><div class="metric-value small">${debug.mime_type || '—'}</div></div>
-              <div class="metric"><div class="metric-label">Model</div><div class="metric-value small">${debug.model || 'groq'}</div></div>
-              <div class="metric"><div class="metric-label">Description Length</div><div class="metric-value">${debug.description_length || 0}</div></div>
-              <div class="metric"><div class="metric-label">Processing Time</div><div class="metric-value small">${data.processing_time_ms || 0}ms</div></div>
-              <div class="metric"><div class="metric-label">Tokens Used</div><div class="metric-value">${debug.tokens_used || 0}</div></div>
-            </div>
-          </div>
-          
-          ${isValid ? renderDescriptionActions() : `
-            <div style="background: var(--yellow-bg); border: 1px solid rgba(251,191,36,.2); border-radius: 8px; padding: 12px; color: var(--yellow); font-size: 12px; margin: 10px 0;">
-              <strong>Warning:</strong> Description appears to be generic. Please regenerate or cancel.
-            </div>
-            <div class="step-actions">
-              <button class="btn-small primary" onclick="regenerateDescription()">Regenerate</button>
-              <button class="btn-small danger" onclick="closeExtraction()">Cancel</button>
-            </div>
-          `}
-        `;
+        return `<div class="description-panel show"><div class="description-title">Description</div><div class="description-text">${data.description}</div></div>
+          <div class="step-actions"><button class="btn-small primary" onclick="proceedToChunking()">Continue</button><button class="btn-small" onclick="regenerateDescription()">Retry</button><button class="btn-small danger" onclick="closeExtraction()">Cancel</button></div>`;
       }
       return '';
-      
     case 'chunks':
       if (data.chunks && data.chunks.length > 0) {
-        const preview = data.chunks.slice(0, 3).map((chunk, i) => 
-          `<div class="chunk-item"><strong>Chunk ${i+1}</strong>${chunk.substring(0, 100)}...</div>`
-        ).join('');
-        return `
-          <div class="chunk-preview-list">${preview}${data.chunks.length > 3 ? `<div class="chunk-item"><strong>... and ${data.chunks.length - 3} more</strong></div>` : ''}</div>
-          <div class="step-metric">
-            <div class="metric"><div class="metric-label">Total Chunks</div><div class="metric-value">${data.total_chunks || 0}</div></div>
-            <div class="metric"><div class="metric-label">Chunk Size</div><div class="metric-value small">${data.chunk_size || 800}</div></div>
-          </div>
-          ${renderChunkActions()}
-        `;
+        const preview = data.chunks.slice(0,3).map((c,i)=>`<div class="chunk-item"><strong>Chunk ${i+1}</strong>${c.substring(0,100)}…</div>`).join('');
+        return `<div class="chunk-preview-list">${preview}${data.chunks.length>3?`<div class="chunk-item"><strong>… and ${data.chunks.length-3} more</strong></div>`:''}</div>
+          <div class="step-metric"><div class="metric"><div class="metric-label">Total chunks</div><div class="metric-value">${data.total_chunks||0}</div></div><div class="metric"><div class="metric-label">Chunk size</div><div class="metric-value">${data.chunk_size||800}</div></div></div>
+          <div class="step-actions"><button class="btn-small primary" onclick="generateEmbeddings()">Embed</button><button class="btn-small danger" onclick="closeExtraction()">Cancel</button></div>`;
       }
       return '';
-      
     case 'embed':
       if (data.vectors_created !== undefined) {
-        return `
-          <div class="step-metric">
-            <div class="metric"><div class="metric-label">Vectors Created</div><div class="metric-value">${data.vectors_created || 0}</div></div>
-            <div class="metric"><div class="metric-label">Status</div><div class="metric-value small">Ready</div></div>
-          </div>
-          ${renderEmbedActions()}
-        `;
+        return `<div class="step-metric"><div class="metric"><div class="metric-label">Vectors</div><div class="metric-value">${data.vectors_created||0}</div></div><div class="metric"><div class="metric-label">Status</div><div class="metric-value" style="font-size:11px;">Ready</div></div></div>
+          <div class="step-actions"><button class="btn-small primary" onclick="storeInPinecone()">Store</button><button class="btn-small danger" onclick="closeExtraction()">Cancel</button></div>`;
       }
       return '';
-      
     case 'store':
       if (data.vectors_written !== undefined) {
-        return `
-          <div class="step-metric">
-            <div class="metric"><div class="metric-label">Vectors Stored</div><div class="metric-value">${data.vectors_written || 0}</div></div>
-            <div class="metric"><div class="metric-label">Status</div><div class="metric-value small">Complete</div></div>
-          </div>
-          ${renderCompleteActions()}
-        `;
+        return `<div class="step-metric"><div class="metric"><div class="metric-label">Stored</div><div class="metric-value">${data.vectors_written||0}</div></div><div class="metric"><div class="metric-label">Status</div><div class="metric-value" style="font-size:11px;">Done</div></div></div>
+          <div class="step-actions"><button class="btn-small primary" onclick="closeExtraction()">Done</button></div>`;
       }
       return '';
-      
-    default:
-      return '';
+    default: return '';
   }
 }
 
-function renderDescriptionActions() {
-  return `
-    <div class="step-actions">
-      <button class="btn-small primary" onclick="proceedToChunking()">Proceed to Embedding</button>
-      <button class="btn-small" onclick="regenerateDescription()">Regenerate</button>
-      <button class="btn-small danger" onclick="closeExtraction()">Cancel</button>
-    </div>
-  `;
-}
-
-function renderChunkActions() {
-  return `
-    <div class="step-actions">
-      <button class="btn-small primary" onclick="generateEmbeddings()">Generate Embeddings</button>
-      <button class="btn-small danger" onclick="closeExtraction()">Cancel</button>
-    </div>
-  `;
-}
-
-function renderEmbedActions() {
-  return `
-    <div class="step-actions">
-      <button class="btn-small primary" onclick="storeInPinecone()">Store in Pinecone</button>
-      <button class="btn-small danger" onclick="closeExtraction()">Cancel</button>
-    </div>
-  `;
-}
-
-function renderCompleteActions() {
-  return `
-    <div class="step-actions">
-      <button class="btn-small primary" onclick="closeExtraction()">Complete</button>
-    </div>
-  `;
-}
-
-async function encodeImageStep() {
-  if (!currentSession) return;
-  updateStepStatus('encode', 'loading');
-  expandStep('encode');
-  
-  try {
-    const res = await fetch(`${API_URL}/image/encode`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `session_id=${currentSession}`
-    });
-    const data = await res.json();
-    
-    if (data.success) {
-      currentSteps['encode'].data = data;
-      currentSteps['encode'].status = 'done';
-      renderSteps();
-      expandStep('encode');
-      
-      // Auto-proceed to describe
-      await describeImageStep();
-    } else {
-      showExtractionError(data.error);
-    }
-  } catch (err) {
-    showExtractionError(err.message);
-  }
-}
-
-async function describeImageStep() {
-  if (!currentSession) return;
-  updateStepStatus('describe', 'loading');
-  expandStep('describe');
-  
-  try {
-    const res = await fetch(`${API_URL}/image/describe`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `session_id=${currentSession}`
-    });
-    const data = await res.json();
-    
-    if (data.success) {
-      currentSteps['describe'].data = data;
-      currentSteps['describe'].status = 'done';
-      renderSteps();
-      expandStep('describe');
-    } else {
-      // Store error response with full debug info
-      currentSteps['describe'].data = data;
-      currentSteps['describe'].status = 'error';
-      renderSteps();
-      expandStep('describe');
-    }
-  } catch (err) {
-    currentSteps['describe'].data = {
-      error: err.message,
-      debug: {}
-    };
-    currentSteps['describe'].status = 'error';
-    renderSteps();
-    expandStep('describe');
-  }
-}
-
-async function regenerateDescription() {
-  // Could add retry logic here
-  await describeImageStep();
-}
-
-async function proceedToChunking() {
-  if (!currentSession) return;
-  
-  // BLOCK: Check if vision analysis was successful
-  const describeStep = currentSteps['describe'];
-  if (!describeStep || describeStep.status !== 'done' || !describeStep.data?.success) {
-    alert('Vision analysis must complete successfully before proceeding to embedding.');
-    return;
-  }
-  
-  updateStepStatus('chunks', 'loading');
-  expandStep('chunks');
-  
-  try {
-    const res = await fetch(`${API_URL}/image/preview-chunks`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `session_id=${currentSession}`
-    });
-    const data = await res.json();
-    
-    if (data.success) {
-      currentSteps['chunks'].data = data;
-      currentSteps['chunks'].status = 'done';
-      renderSteps();
-      expandStep('chunks');
-    } else {
-      currentSteps['chunks'].data = data;
-      currentSteps['chunks'].status = 'error';
-      renderSteps();
-      expandStep('chunks');
-    }
-  } catch (err) {
-    currentSteps['chunks'].data = {
-      error: err.message,
-      debug: {}
-    };
-    currentSteps['chunks'].status = 'error';
-    renderSteps();
-    expandStep('chunks');
-  }
-}
-
-async function generateEmbeddings() {
-  if (!currentSession) return;
-  updateStepStatus('embed', 'loading');
-  expandStep('embed');
-  
-  try {
-    const res = await fetch(`${API_URL}/image/embed`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `session_id=${currentSession}`
-    });
-    const data = await res.json();
-    
-    if (data.success) {
-      currentSteps['embed'].data = data;
-      currentSteps['embed'].status = 'done';
-      renderSteps();
-      expandStep('embed');
-    } else {
-      showExtractionError(data.error);
-    }
-  } catch (err) {
-    showExtractionError(err.message);
-  }
-}
-
-async function storeInPinecone() {
-  if (!currentSession) return;
-  updateStepStatus('store', 'loading');
-  expandStep('store');
-  
-  try {
-    const res = await fetch(`${API_URL}/image/store`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `session_id=${currentSession}`
-    });
-    const data = await res.json();
-    
-    if (data.success) {
-      currentSteps['store'].data = data;
-      currentSteps['store'].status = 'done';
-      renderSteps();
-      expandStep('store');
-    } else {
-      showExtractionError(data.error);
-    }
-  } catch (err) {
-    showExtractionError(err.message);
-  }
-}
-
-function updateStepStatus(stepId, status) {
-  if (currentSteps[stepId]) {
-    currentSteps[stepId].status = status;
-  }
-}
-
+function updateStepStatus(stepId, status) { if (currentSteps[stepId]) currentSteps[stepId].status = status; }
 function expandStep(stepId) {
   document.querySelectorAll('.step-item').forEach(el => el.classList.remove('expanded'));
   const step = document.getElementById(`step-${stepId}`);
   if (step) step.classList.add('expanded');
 }
-
 function showExtractionError(msg) {
   const content = document.getElementById('extraction-content');
-  const errorEl = document.createElement('div');
-  errorEl.style.cssText = 'color: var(--red); padding: 15px; background: var(--red-bg); border-radius: 10px; font-size: 12px; line-height: 1.6;';
-  errorEl.textContent = 'Error: ' + msg;
-  content.appendChild(errorEl);
+  const el = document.createElement('div');
+  el.style.cssText = 'color:var(--red);padding:14px;background:var(--red-bg);border-radius:9px;font-size:12px;line-height:1.6;margin-top:10px;';
+  el.textContent = 'Error: ' + msg;
+  content.appendChild(el);
 }
-
 function closeExtraction() {
   document.getElementById('extraction-modal').classList.remove('show');
-  currentSession = null;
-  currentSteps = {};
+  currentSession = null; currentSteps = {};
   removeFile('image');
 }
 
-// ============ PDF LIVE EXTRACTION ============
-
-async function startPdfLiveExtraction() {
-  if (!selectedFiles['pdf']) {
-    alert('Please select a PDF file');
-    return;
-  }
-
-  const panel = document.getElementById('pdf-live-panel');
-  panel.style.display = 'block';
-  panel.innerHTML = `
-    <div style="padding: 20px; text-align: center;">
-      <div class="spinner"></div>
-      <div style="color: var(--ink2); margin-top: 12px; font-size: 13px;">Extracting PDF pages...</div>
-    </div>
-  `;
-
-  const formData = new FormData();
-  formData.append('file', selectedFiles['pdf']);
-
+async function encodeImageStep() {
+  if (!currentSession) return;
+  updateStepStatus('encode','loading'); renderSteps(); expandStep('encode');
   try {
-    const res = await fetch(`${API_URL}/pdf/live-extract`, { method: 'POST', body: formData });
+    const res  = await fetch(`${API_URL}/image/encode`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`session_id=${currentSession}` });
     const data = await res.json();
-
-    if (!data.success) {
-      panel.innerHTML = `
-        <div style="padding: 20px; color: var(--red); background: var(--red-bg); border: 1px solid rgba(248,113,113,.2); border-radius: 8px;">
-          <strong>Error:</strong> ${data.error || 'Failed to extract PDF'}
-        </div>
-      `;
-      return;
-    }
-
-    renderPdfExtraction(data);
-  } catch (err) {
-    panel.innerHTML = `
-      <div style="padding: 20px; color: var(--red); background: var(--red-bg); border: 1px solid rgba(248,113,113,.2); border-radius: 8px;">
-        <strong>Connection Error:</strong> ${err.message}
-      </div>
-    `;
-  }
-}
-
-function renderPdfExtraction(data) {
-  const panel = document.getElementById('pdf-live-panel');
-  let html = `
-    <div style="padding: 18px; border-bottom: 1px solid rgba(255,255,255,.07);">
-      <div style="font-weight: 600; color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px;">
-        Extraction Complete
-      </div>
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-        <div style="padding: 10px; background: rgba(62,207,116,.08); border-radius: 6px;">
-          <div style="font-size: 11px; color: var(--ink2); margin-bottom: 4px;">Pages Extracted</div>
-          <div style="font-size: 16px; font-weight: 600; color: var(--green);">${data.total_pages || 0}</div>
-        </div>
-        <div style="padding: 10px; background: rgba(251,191,36,.08); border-radius: 6px;">
-          <div style="font-size: 11px; color: var(--ink2); margin-bottom: 4px;">Images Found</div>
-          <div style="font-size: 16px; font-weight: 600; color: var(--yellow);">${data.total_images || 0}</div>
-        </div>
-        <div style="padding: 10px; background: rgba(240,90,40,.08); border-radius: 6px;">
-          <div style="font-size: 11px; color: var(--ink2); margin-bottom: 4px;">Total Text</div>
-          <div style="font-size: 14px; font-weight: 600; color: var(--accent);">
-            ${data.pages.reduce((sum, p) => sum + (p.text || '').length, 0).toLocaleString()} chars
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  const totalPages = data.total_pages || 0;
-  data.pages.forEach(page => {
-    html += renderPdfPage(page, totalPages);
-  });
-
-  html += `
-    <div style="padding: 18px; border-top: 1px solid rgba(255,255,255,.07); display: flex; gap: 10px; align-items: center;">
-      <button style="padding: 11px 16px; background: linear-gradient(135deg, var(--accent), #c02808); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s; box-shadow: 0 2px 14px var(--accent-glow); white-space: nowrap;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'" onclick="continueToPinecone()">
-        <i class="ti ti-check"></i> Continue to Embedding
-      </button>
-      <button style="padding: 11px 16px; background: rgba(255,255,255,.08); color: var(--ink); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s; white-space: nowrap;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'" onclick="document.getElementById('pdf-live-panel').style.display='none'">
-        <i class="ti ti-x"></i> Close
-      </button>
-    </div>
-  `;
-
-  panel.innerHTML = html;
-}
-
-function renderPdfPage(page, totalPages) {
-  const pageNum = page.page || '?';
-  const totalStr = totalPages || '?';
-  const text = page.text || '';
-  const images = page.images || [];
-
-  let html = `
-    <div style="padding: 18px; border-top: 1px solid rgba(255,255,255,.07);">
-      <div style="color: var(--accent); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px;">
-        PAGE ${pageNum} of ${totalStr}
-      </div>
-  `;
-
-  // Render text first
-  if (text) {
-    html += `
-      <div style="background: rgba(255,255,255,.04); padding: 12px; border-radius: 6px; margin-bottom: 12px; max-height: 180px; overflow-y: auto; border: 1px solid rgba(255,255,255,.06);">
-        <div style="font-size: 11px; color: var(--ink2); margin-bottom: 8px; font-weight: 500;">Extracted Text</div>
-        <div style="font-family: var(--mono); font-size: 12px; color: var(--ink); line-height: 1.5; white-space: pre-wrap; word-break: break-word;">
-          ${text.substring(0, 350)}${text.length > 350 ? '...' : ''}
-        </div>
-        <div style="font-size: 10px; color: var(--ink3); margin-top: 8px;">${text.length} characters</div>
-      </div>
-    `;
-  }
-
-  // Render images after text
-  if (images && images.length > 0) {
-    html += `
-      <div style="margin-bottom: 12px;">
-        <div style="font-size: 11px; color: var(--yellow); font-weight: 500; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-          <i class="ti ti-photo"></i> ${images.length} Image${images.length > 1 ? 's' : ''}
-        </div>
-    `;
-    
-    images.forEach((img, idx) => {
-      const dims = img.dimensions || 'unknown';
-      const desc = img.description || 'Processing...';
-      const model = img.model || 'groq';
-      
-      html += `
-        <div style="background: rgba(255,255,255,.04); padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,.06);">
-          <div style="font-size: 11px; color: var(--ink2); font-weight: 500; margin-bottom: 6px;">Image ${idx + 1} — ${dims}</div>
-          <div style="font-size: 12px; color: var(--ink); line-height: 1.5; margin-bottom: 6px; max-height: 100px; overflow-y: auto;">${desc.substring(0, 220)}${desc && desc.length > 220 ? '...' : ''}</div>
-          <div style="font-size: 10px; color: var(--ink3);">via ${model}</div>
-        </div>
-      `;
-    });
-    
-    html += `</div>`;
-  }
-
-  html += `</div>`;
-  return html;
-}
-
-async function proceedPdfToChunking(dataJson) {
-  const data = JSON.parse(dataJson);
-  alert(`✓ PDF extraction complete!\n\nPages: ${data.total_pages}\nImages analyzed: ${data.total_images}\n\nChunking & embedding ready. (Feature coming soon)`);
-}
-
-function continueToPinecone() {
-  alert('Ready to embed & store in Pinecone!\n\nThis will chunk text and store vectors. Proceed?');
-}
-
-async function startSync() {
-  const statusEl = document.getElementById('sync-status');
-  const headerEl = document.getElementById('sync-status-header');
-  const bodyEl   = document.getElementById('sync-status-body');
-  const summaryEl = document.getElementById('sync-summary');
-  const syncBtn = document.getElementById('sync-btn');
-  
-  syncBtn.disabled = true;
-  statusEl.classList.add('show');
-  headerEl.className = 'status-header loading';
-  headerEl.innerHTML = '<div class="spinner"></div><span>Syncing…</span>';
-  bodyEl.textContent = `Syncing with ${selectedStrategy} chunking strategy…`;
-  summaryEl.style.display = 'none';
-  
-  try {
-    const formData = new FormData();
-    formData.append('chunking_strategy', selectedStrategy);
-    
-    const res = await fetch(`${API_URL}/sync`, { 
-      method: 'POST',
-      body: formData
-    });
-    const data = await res.json();
-    
     if (data.success) {
-      headerEl.className = 'status-header success';
-      headerEl.innerHTML = '<i class="ti ti-circle-check"></i><span>Sync complete</span>';
-      bodyEl.innerHTML = `
-        <div style="padding: 10px 0;">
-          <strong>Synchronization Results (${selectedStrategy} chunking):</strong><br><br>
-          <strong style="color: var(--green);">✓ New Files Ingested:</strong> ${data.new_files_ingested}<br>
-          <strong style="color: var(--ink2);">⊙ Existing Files Skipped:</strong> ${data.existing_files_skipped}<br>
-          <strong style="color: var(--red);">✕ Deleted Files Removed:</strong> ${data.deleted_files_removed}<br><br>
-          <strong>Vectors Added:</strong><br>
-          Chunks: ${data.chunks_added}<br>
-          Vectors: ${data.vectors_added}<br><br>
-          <strong style="color: var(--ink3); font-size: 12px;">Time: ${data.processing_time_ms}ms</strong>
-          ${data.errors && data.errors.length > 0 ? `<br><br><strong style="color: var(--red);">⚠ Errors:</strong><br>${data.errors.map(e => '• ' + e).join('<br>')}` : ''}
-        </div>
-      `;
-      
-      document.getElementById('sync-new').textContent = data.new_files_ingested;
-      document.getElementById('sync-skipped').textContent = data.existing_files_skipped;
-      document.getElementById('sync-deleted').textContent = data.deleted_files_removed;
-      document.getElementById('sync-chunks').textContent = data.chunks_added;
-      document.getElementById('sync-vectors').textContent = data.vectors_added;
-      document.getElementById('sync-time').textContent = data.processing_time_ms + 'ms';
-      summaryEl.style.display = 'block';
-    } else {
-      headerEl.className = 'status-header error';
-      headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Sync failed</span>';
-      bodyEl.textContent = data.error || 'Unknown error occurred';
-    }
+      currentSteps['encode'].data = data; currentSteps['encode'].status = 'done';
+      renderSteps(); expandStep('encode');
+      await describeImageStep();
+    } else showExtractionError(data.error);
+  } catch (err) { showExtractionError(err.message); }
+}
+
+async function describeImageStep() {
+  if (!currentSession) return;
+  updateStepStatus('describe','loading'); renderSteps(); expandStep('describe');
+  try {
+    const res  = await fetch(`${API_URL}/image/describe`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`session_id=${currentSession}` });
+    const data = await res.json();
+    currentSteps['describe'].data = data;
+    currentSteps['describe'].status = data.success ? 'done' : 'error';
+    renderSteps(); expandStep('describe');
   } catch (err) {
-    headerEl.className = 'status-header error';
-    headerEl.innerHTML = '<i class="ti ti-circle-x"></i><span>Connection error</span>';
-    bodyEl.textContent = `Failed to connect: ${err.message}`;
-  } finally {
-    syncBtn.disabled = false;
+    currentSteps['describe'].data = { error: err.message, debug:{} };
+    currentSteps['describe'].status = 'error';
+    renderSteps(); expandStep('describe');
+  }
+}
+async function regenerateDescription() { await describeImageStep(); }
+
+async function proceedToChunking() {
+  if (!currentSession) return;
+  const ds = currentSteps['describe'];
+  if (!ds || ds.status !== 'done' || !ds.data?.success) return;
+  updateStepStatus('chunks','loading'); renderSteps(); expandStep('chunks');
+  try {
+    const res  = await fetch(`${API_URL}/image/preview-chunks`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`session_id=${currentSession}` });
+    const data = await res.json();
+    currentSteps['chunks'].data = data;
+    currentSteps['chunks'].status = data.success ? 'done' : 'error';
+    renderSteps(); expandStep('chunks');
+  } catch (err) {
+    currentSteps['chunks'].data = { error: err.message }; currentSteps['chunks'].status = 'error';
+    renderSteps(); expandStep('chunks');
   }
 }
 
+async function generateEmbeddings() {
+  if (!currentSession) return;
+  updateStepStatus('embed','loading'); renderSteps(); expandStep('embed');
+  try {
+    const res  = await fetch(`${API_URL}/image/embed`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`session_id=${currentSession}` });
+    const data = await res.json();
+    if (data.success) { currentSteps['embed'].data = data; currentSteps['embed'].status = 'done'; renderSteps(); expandStep('embed'); }
+    else showExtractionError(data.error);
+  } catch (err) { showExtractionError(err.message); }
+}
+
+async function storeInPinecone() {
+  if (!currentSession) return;
+  updateStepStatus('store','loading'); renderSteps(); expandStep('store');
+  try {
+    const res  = await fetch(`${API_URL}/image/store`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`session_id=${currentSession}` });
+    const data = await res.json();
+    if (data.success) { currentSteps['store'].data = data; currentSteps['store'].status = 'done'; renderSteps(); expandStep('store'); }
+    else showExtractionError(data.error);
+  } catch (err) { showExtractionError(err.message); }
+}
 </script>
 </body>
 </html>

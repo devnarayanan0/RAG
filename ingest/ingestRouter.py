@@ -17,7 +17,7 @@ from ingest.services.groq_vision import describe_image
 from ingest.services.sync_service import sync_folder_to_vector_db, is_file_already_indexed
 
 logger = logging.getLogger(__name__)
-BASE_DATA_DIR = "ingest/data"
+BASE_DATA_DIR = "data"
 
 duplicate_checker = DuplicateChecker()
 extraction_sessions = {}
@@ -493,7 +493,7 @@ async def extract_pdf_live_with_vision(pdf_path: str) -> dict:
                     if not (base64_content and len(base64_content) > 500):
                         continue
                     
-                    vision_response = await describe_image(
+                    vision_response = describe_image(
                         base64_content,
                         image_data.get("mime_type", "image/png")
                     )

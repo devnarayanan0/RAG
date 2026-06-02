@@ -2,6 +2,7 @@ import os
 import logging
 import uuid
 import time
+from datetime import datetime
 from collections import deque
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,6 +31,9 @@ from ingest.services.sync_service import (
     detect_deleted_files,
     delete_missing_vectors,
 )
+from ingest.services.chunk_service import chunk_text
+from ingest.services.duplicate_service import DuplicateChecker
+from ingest.services.pinecone_service import build_vectors, upsert_vectors
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -41,10 +45,13 @@ index = pc.Index(os.getenv("PINECONE_INDEX"))
 # Audit log storage
 audit_logs = deque(maxlen=100)
 audit_index = {}
-BASE_DATA = "ingest/data"
+BASE_DATA = "data"
 
 # Chunking strategy storage (global preference)
 chunking_config = {"strategy": "semantic"}  # "semantic", "recursive", "simple"
+
+# Extracted text session storage (for chunk preview before upload)
+extracted_text_sessions = {}  # session_id -> {"text": str, "filename": str, "upload_time": str}
 
 def query_pinecone_for_hash(hash_val: str) -> dict:
     """Query Pinecone for vectors matching a hash."""
@@ -353,6 +360,165 @@ async def get_image_session(session_id: str):
         return {"success": False, "error": str(e)}
 
 
+@app.post("/preview-chunks", tags=["Chunking"])
+async def preview_chunks_endpoint(
+    extracted_text: str = Form(...),
+    chunking_strategy: str = Form(default="semantic"),
+    filename: str = Form(default="document")
+):
+    """
+    Preview chunks before uploading to Pinecone.
+    
+    Args:
+        extracted_text: Text extracted from document
+        chunking_strategy: Strategy to use ("semantic", "recursive", "simple")
+        filename: Original filename for reference
+    """
+    try:
+        logger.info(f"[preview-chunks] strategy={chunking_strategy}, filename={filename}, text_len={len(extracted_text)}")
+        # Generate chunks with selected strategy
+        chunks = chunk_text(extracted_text, strategy=chunking_strategy)
+        
+        if not chunks:
+            logger.warning(f"[preview-chunks] No chunks generated for strategy={chunking_strategy}")
+            return {
+                "success": False,
+                "error": "No chunks generated",
+                "strategy": chunking_strategy
+            }
+        
+        # Store for later upload
+        session_id = str(uuid.uuid4())
+        extracted_text_sessions[session_id] = {
+            "text": extracted_text,
+            "filename": filename,
+            "chunks": chunks,
+            "strategy": chunking_strategy,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        logger.info(f"[preview-chunks] Created session: session_id={session_id}, total_chunks={len(chunks)}")
+        
+        # Return preview (first 3 chunks + summary)
+        preview_chunks = chunks[:3]
+        return {
+            "success": True,
+            "session_id": session_id,
+            "total_chunks": len(chunks),
+            "strategy": chunking_strategy,
+            "preview": preview_chunks,
+            "stats": {
+                "text_length": len(extracted_text),
+                "avg_chunk_size": sum(len(c) for c in chunks) // len(chunks) if chunks else 0,
+                "min_chunk_size": min(len(c) for c in chunks) if chunks else 0,
+                "max_chunk_size": max(len(c) for c in chunks) if chunks else 0
+            }
+        }
+    except Exception as e:
+        logger.error(f"Preview chunks error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/upload-extracted", tags=["Ingestion"])
+async def upload_extracted(
+    session_id: str = Form(...),
+    source_type: str = Form(default="extracted"),
+    filename: str = Form(default="document")
+):
+    """
+    Upload previewed chunks to Pinecone vector database.
+    
+    Args:
+        session_id: Session ID from preview-chunks
+        source_type: Source type (pdf, docx, image, etc.)
+        filename: Original filename
+    """
+    try:
+        logger.info(f"[upload-extracted] session_id={session_id}, filename={filename}, source_type={source_type}")
+        # Retrieve session
+        if session_id not in extracted_text_sessions:
+            logger.error(f"[upload-extracted] Invalid session ID: {session_id}")
+            return {"success": False, "error": "Invalid session ID"}
+        
+        session = extracted_text_sessions[session_id]
+        chunks = session.get("chunks", [])
+        strategy = session.get("strategy", "semantic")
+        
+        if not chunks:
+            logger.error(f"[upload-extracted] No chunks found in session {session_id}")
+            return {"success": False, "error": "No chunks in session"}
+        
+        # Generate metadata and hashes
+        duplicate_checker = DuplicateChecker()
+        chunk_hashes = [duplicate_checker.generate_hash(c) for c in chunks]
+        
+        base_metadata = {
+            "source": f"{source_type}/{filename}",
+            "source_type": source_type,
+            "filename": filename,
+            "upload_time": datetime.utcnow().isoformat(),
+            "ocr_used": False,
+            "masked": False,
+            "extraction_type": "extracted",
+            "chunking_strategy": strategy,
+            "description_generated": False,
+            "llm": "none"
+        }
+        
+        # Build vectors
+        logger.info(f"[upload-extracted] Building {len(chunks)} vectors...")
+        embedding_vectors = build_vectors(chunks, base_metadata, chunk_hashes)
+        
+        if not embedding_vectors:
+            logger.error("[upload-extracted] Failed to build vectors.")
+            return {"success": False, "error": "Failed to build vectors"}
+        
+        # Upsert to Pinecone
+        logger.info(f"[upload-extracted] Upserting vectors to Pinecone...")
+        stored_count = upsert_vectors(index, embedding_vectors)
+        logger.info(f"[upload-extracted] Upsert success. Written: {stored_count}")
+        
+        # Clean up session
+        del extracted_text_sessions[session_id]
+        
+        return {
+            "success": True,
+            "vectors_written": stored_count,
+            "total_chunks": len(chunks),
+            "filename": filename,
+            "strategy": strategy,
+            "processing_time_ms": 0,
+            "metadata_sample": embedding_vectors[0].get("metadata") if embedding_vectors else None
+        }
+    except Exception as e:
+        logger.error(f"Upload extracted error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/sync/compare", tags=["Synchronization"])
+async def sync_compare():
+    """
+    Compare local files with Pinecone index to show pending changes (VCS-style diff).
+    """
+    try:
+        local_files = scan_local_files()
+        existing_sources = fetch_existing_sources(index)
+        
+        new_files = sorted(list(detect_new_files(local_files, existing_sources)))
+        deleted_files = sorted(list(detect_deleted_files(local_files, existing_sources)))
+        in_sync_files = sorted(list(local_files - set(new_files) - set(deleted_files)))
+        
+        logger.info(f"[sync-compare] new_files={len(new_files)}, deleted_files={len(deleted_files)}, in_sync_files={len(in_sync_files)}")
+        return {
+            "success": True,
+            "new_files": new_files,
+            "deleted_files": deleted_files,
+            "in_sync_files": in_sync_files
+        }
+    except Exception as e:
+        logger.error(f"Sync compare error: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @app.post("/sync", tags=["Synchronization"])
 async def sync(chunking_strategy: str = Form(default=None)):
     """
@@ -395,9 +561,11 @@ async def sync(chunking_strategy: str = Form(default=None)):
                 parts = source_path.split("/")
                 source_type = parts[0]
                 
-                logger.info(f"[{sync_id}] Ingesting: {source_path}")
+                # Prepend BASE_DATA to locate the local file correctly
+                full_source_path = os.path.join(BASE_DATA, source_path)
+                logger.info(f"[{sync_id}] Ingesting: {full_source_path} (from relative source_path: {source_path})")
                 
-                result, audit = await ingest_document(source_type, source_path, index, sync_id, chunking_strategy=strategy)
+                result, audit = await ingest_document(source_type, full_source_path, index, sync_id, chunking_strategy=strategy)
                 
                 if audit.get("pinecone", {}).get("status") == "success":
                     chunks_added += audit.get("chunking", {}).get("total_chunks", 0)
