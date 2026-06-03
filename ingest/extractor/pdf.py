@@ -178,33 +178,34 @@ def extract_pdf_live(path: str):
     """
     Live PDF extraction generator.
     
-    Yields page data with text and embedded images as they are processed.
+    Yields page data with native text, OCR text, and embedded images as they are processed.
     """
     try:
         reader = PdfReader(path)
         total_pages = len(reader.pages)
         
         for page_index, page in enumerate(reader.pages, 1):
-            page_text = extract_text_from_page(page)
+            native_text = extract_text_from_page(page)
+            ocr_text = None
             
-            if not page_text or len(page_text) < MIN_TEXT_LENGTH_BEFORE_OCR:
+            if not native_text or len(native_text) < MIN_TEXT_LENGTH_BEFORE_OCR:
                 ocr_text = apply_ocr_to_page(page)
-                if ocr_text:
-                    page_text = ocr_text
-                    logger.debug(f"OCR applied to page {page_index}")
+                logger.debug(f"OCR applied to page {page_index}")
             
             page_images = extract_images_from_page(page_index, page)
             
             yield {
                 "page": page_index,
-                "text": page_text,
+                "native_text": native_text if native_text else None,
+                "ocr_text": ocr_text if ocr_text else None,
                 "images": page_images,
                 "total_pages": total_pages
             }
             
+            total_chars = (len(native_text) if native_text else 0) + (len(ocr_text) if ocr_text else 0)
             logger.info(
                 f"Extracted page {page_index}/{total_pages}: "
-                f"{len(page_text)} chars, {len(page_images)} images"
+                f"{total_chars} chars, {len(page_images)} images"
             )
     
     except Exception as e:

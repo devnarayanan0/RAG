@@ -5,7 +5,7 @@ import uuid
 import os
 
 from ingest.extractor.pdf import process_pdf, extract_pdf_live
-from ingest.extractor.docx import process_docx
+from ingest.extractor.docx import process_docx, extract_docx_live
 from ingest.extractor.image import process_image
 from ingest.extractor.url import process_url
 from ingest.services.chunk_service import chunk_text
@@ -477,12 +477,14 @@ async def extract_pdf_live_with_vision(pdf_path: str) -> dict:
         for page_data in extract_pdf_live(pdf_path):
             total_page_count = page_data.get("total_pages", 0)
             page_number = page_data.get("page", 0)
-            page_text = page_data.get("text", "")
+            native_text = page_data.get("native_text")
+            ocr_text = page_data.get("ocr_text")
             page_images = page_data.get("images", [])
             
             page_result = {
                 "page": page_number,
-                "text": page_text,
+                "native_text": native_text,
+                "ocr_text": ocr_text,
                 "images": [],
                 "total_pages": total_page_count
             }
@@ -507,11 +509,9 @@ async def extract_pdf_live_with_vision(pdf_path: str) -> dict:
                     image_height = image_data.get('height', 0)
                     
                     page_result["images"].append({
-                        "index": len(page_result["images"]) + 1,
-                        "dimensions": f"{image_width}x{image_height}",
-                        "description": vision_response.get("description", ""),
-                        "model": vision_response.get("model", "groq"),
-                        "success": True
+                        "width": image_width,
+                        "height": image_height,
+                        "description": vision_response.get("description", "")
                     })
                     
                 except Exception as e:
@@ -519,9 +519,11 @@ async def extract_pdf_live_with_vision(pdf_path: str) -> dict:
                     continue
             
             extracted_pages.append(page_result)
+            native_chars = len(native_text) if native_text else 0
+            ocr_chars = len(ocr_text) if ocr_text else 0
             logger.info(
                 f"Extracted page {page_number}/{total_page_count}: "
-                f"{len(page_text)} text chars, {len(page_result['images'])} images analyzed"
+                f"{native_chars} native, {ocr_chars} OCR chars, {len(page_result['images'])} images analyzed"
             )
         
         filename = Path(pdf_path).name
@@ -541,4 +543,82 @@ async def extract_pdf_live_with_vision(pdf_path: str) -> dict:
             "success": False,
             "error": str(e),
             "filename": Path(pdf_path).name if pdf_path else None
+        }
+
+
+async def extract_docx_live_with_vision(docx_path: str) -> dict:
+    """Live DOCX extraction with Groq Vision analysis of embedded images."""
+    extracted_pages = []
+    total_page_count = 0
+    analyzed_image_count = 0
+    
+    try:
+        for page_data in extract_docx_live(docx_path):
+            total_page_count = page_data.get("total_pages", 0)
+            page_number = page_data.get("page", 0)
+            native_text = page_data.get("native_text")
+            ocr_text = page_data.get("ocr_text")
+            page_images = page_data.get("images", [])
+            
+            page_result = {
+                "page": page_number,
+                "native_text": native_text,
+                "ocr_text": ocr_text,
+                "images": [],
+                "total_pages": total_page_count
+            }
+            
+            for image_data in page_images:
+                try:
+                    base64_content = image_data.get("base64", "")
+                    if not (base64_content and len(base64_content) > 500):
+                        continue
+                    
+                    vision_response = describe_image(
+                        base64_content,
+                        image_data.get("mime_type", "image/png")
+                    )
+                    
+                    if not vision_response.get("success"):
+                        logger.debug(f"Vision analysis failed: {vision_response.get('error', 'Unknown')}")
+                        continue
+                    
+                    analyzed_image_count += 1
+                    image_width = image_data.get('width', 0)
+                    image_height = image_data.get('height', 0)
+                    
+                    page_result["images"].append({
+                        "width": image_width,
+                        "height": image_height,
+                        "description": vision_response.get("description", "")
+                    })
+                    
+                except Exception as e:
+                    logger.debug(f"Image processing error on DOCX page {page_number}: {e}")
+                    continue
+            
+            extracted_pages.append(page_result)
+            native_chars = len(native_text) if native_text else 0
+            logger.info(
+                f"Extracted DOCX page {page_number}/{total_page_count}: "
+                f"{native_chars} native chars, {len(page_result['images'])} images analyzed"
+            )
+        
+        filename = Path(docx_path).name
+        
+        return {
+            "success": True,
+            "filename": filename,
+            "pages": extracted_pages,
+            "total_pages": total_page_count,
+            "total_images": analyzed_image_count,
+            "upload_time": datetime.utcnow().isoformat()
+        }
+    
+    except Exception as e:
+        logger.error(f"DOCX live extraction error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "filename": Path(docx_path).name if docx_path else None
         }

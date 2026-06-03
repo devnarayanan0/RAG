@@ -6,7 +6,10 @@ logger = logging.getLogger(__name__)
 
 def extract_url(url: str) -> str:
     """Fetch and parse webpage, remove noise."""
-    response = requests.get(url, timeout=15)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    response = requests.get(url, headers=headers, timeout=15)
     soup = BeautifulSoup(response.text, "html.parser")
 
     for tag in soup(["script", "style", "noscript", "nav", "footer"]):

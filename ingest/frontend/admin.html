@@ -563,9 +563,10 @@ input[type="url"]::placeholder { color: var(--ink3); }
           </div>
           <input type="file" id="docx-file" accept=".docx" onchange="handleFile('docx', this.files[0])">
         </div>
-        <button class="upload-btn" onclick="upload('docx')">
-          <i class="ti ti-upload"></i> Upload
+        <button class="upload-btn" onclick="startDocxLiveExtraction()">
+          <i class="ti ti-sparkles"></i> Run
         </button>
+        <div id="docx-live-panel" style="display:none;margin-top:18px;border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:var(--surface);"></div>
         <div class="status" id="docx-status">
           <div class="status-header" id="docx-status-header"><div class="spinner"></div><span>Processing…</span></div>
           <div class="status-body" id="docx-status-body"></div>
@@ -638,9 +639,10 @@ input[type="url"]::placeholder { color: var(--ink3); }
             <input type="url" id="url-input" placeholder="https://example.com" />
           </div>
         </div>
-        <button class="upload-btn" onclick="upload('url')">
-          <i class="ti ti-upload"></i> Upload
+        <button class="upload-btn" onclick="startUrlLiveExtraction()">
+          <i class="ti ti-sparkles"></i> Run
         </button>
+        <div id="url-live-panel" style="display:none;margin-top:18px;border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:var(--surface);"></div>
         <div class="status" id="url-status">
           <div class="status-header" id="url-status-header"><div class="spinner"></div><span>Processing…</span></div>
           <div class="status-body" id="url-status-body"></div>
@@ -750,6 +752,11 @@ function scrollToExtractionBottom() {
   if (el) {
     el.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }
+}
+
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 async function loadChunkingStrategies() {
@@ -1018,23 +1025,77 @@ async function startPdfLiveExtraction() {
 function renderPdfExtraction(data) {
   const panel = document.getElementById('pdf-live-panel');
   let allText = '';
-  data.pages.forEach(p => { if (p.text) allText += p.text + '\n\n'; });
-  currentExtractedText = allText;
+  
+  let totalPages = data.total_pages || (data.pages ? data.pages.length : 0);
+  let nativePages = 0;
+  let ocrPages = 0;
+  let imagePages = 0;
+  let totalImages = 0;
+
+  if (data.pages) {
+    data.pages.forEach(p => {
+      let hasNative = p.native_text && p.native_text.trim();
+      let hasOcr = p.ocr_text && p.ocr_text.trim();
+      let hasImages = p.images && p.images.length > 0;
+
+      if (hasNative) {
+        nativePages++;
+        allText += p.native_text + '\n\n';
+      }
+      if (hasOcr) {
+        ocrPages++;
+        allText += p.ocr_text + '\n\n';
+      }
+      if (hasImages) {
+        imagePages++;
+        totalImages += p.images.length;
+        p.images.forEach(img => {
+          if (img.description) {
+            allText += img.description + '\n\n';
+          }
+        });
+      }
+    });
+  }
+
+  currentExtractedText = allText.trim();
   currentFilename = data.filename || 'document';
+
   let html = `<div style="padding:16px;border-bottom:1px solid var(--border);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
-      <div style="font-weight:600;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Extraction complete</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-weight:600;color:var(--accent);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;">Extraction Report</div>
       <button class="btn-small" style="padding:4px 8px;font-size:11px;background:#fff;border:1px solid var(--border2);color:var(--ink2);border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;" onclick="scrollToExtractionBottom()">
         <i class="ti ti-arrow-down" style="font-size:11px;"></i> Scroll to bottom
       </button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-      <div style="padding:9px;background:var(--green-bg);border-radius:6px;"><div style="font-size:11px;color:var(--ink2);margin-bottom:3px;">Pages</div><div style="font-size:15px;font-weight:600;color:var(--green);">${data.total_pages||0}</div></div>
-      <div style="padding:9px;background:var(--yellow-bg);border-radius:6px;"><div style="font-size:11px;color:var(--ink2);margin-bottom:3px;">Images</div><div style="font-size:15px;font-weight:600;color:var(--yellow);">${data.total_images||0}</div></div>
-      <div style="padding:9px;background:var(--accent-bg);border-radius:6px;"><div style="font-size:11px;color:var(--ink2);margin-bottom:3px;">Characters</div><div style="font-size:13px;font-weight:600;color:var(--accent);">${allText.length.toLocaleString()}</div></div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+      <div style="padding:9px;background:var(--surface);border:1px solid var(--border);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--ink2);margin-bottom:3px;font-weight:500;white-space:nowrap;">Total Pages</div>
+        <div style="font-size:15px;font-weight:600;color:var(--ink);">${totalPages}</div>
+      </div>
+      <div style="padding:9px;background:var(--green-bg);border:1px solid rgba(22,163,74,0.1);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--green);margin-bottom:3px;font-weight:500;white-space:nowrap;">Native Pages</div>
+        <div style="font-size:15px;font-weight:600;color:var(--green);">${nativePages}</div>
+      </div>
+      <div style="padding:9px;background:var(--yellow-bg);border:1px solid rgba(180,83,9,0.1);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--yellow);margin-bottom:3px;font-weight:500;white-space:nowrap;">OCR Pages</div>
+        <div style="font-size:15px;font-weight:600;color:var(--yellow);">${ocrPages}</div>
+      </div>
+      <div style="padding:9px;background:var(--accent-bg);border:1px solid rgba(224,78,31,0.1);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--accent);margin-bottom:3px;font-weight:500;white-space:nowrap;">Image Pages</div>
+        <div style="font-size:15px;font-weight:600;color:var(--accent);">${imagePages}</div>
+      </div>
+      <div style="padding:9px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--ink2);margin-bottom:3px;font-weight:500;white-space:nowrap;">Total Images</div>
+        <div style="font-size:15px;font-weight:600;color:var(--ink);">${totalImages}</div>
+      </div>
     </div>
   </div>`;
-  data.pages.forEach(p => { html += renderPdfPage(p, data.total_pages||0); });
+
+  if (data.pages) {
+    data.pages.forEach(p => { html += renderPdfPage(p, totalPages); });
+  }
+
   html += `<div id="pdf-extraction-actions" style="padding:14px;border-top:1px solid var(--border);display:flex;gap:8px;">
     <button style="flex:1;padding:10px;background:linear-gradient(135deg,var(--accent),#a83410);color:#fff;border:none;border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 2px 10px var(--accent-glow);" onclick="continueToPinecone()">
       <i class="ti ti-check"></i> Continue
@@ -1047,29 +1108,431 @@ function renderPdfExtraction(data) {
 }
 
 function renderPdfPage(page, total) {
-  const text = page.text || '';
+  const nativeText = page.native_text || '';
+  const ocrText = page.ocr_text || '';
   const images = page.images || [];
-  let html = `<div style="padding:16px;border-top:1px solid var(--border);">
-    <div style="color:var(--accent);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Page ${page.page||'?'} of ${total}</div>`;
-  if (text) {
-    html += `<div style="background:var(--surface);padding:11px;border-radius:6px;margin-bottom:10px;max-height:160px;overflow-y:auto;border:1px solid var(--border);">
-      <div style="font-size:11px;color:var(--ink2);margin-bottom:6px;font-weight:500;">Extracted text</div>
-      <div style="font-family:var(--mono);font-size:12px;color:var(--ink);line-height:1.5;white-space:pre-wrap;word-break:break-word;">${text.substring(0,350)}${text.length>350?'…':''}</div>
-      <div style="font-size:10px;color:var(--ink3);margin-top:6px;">${text.length} chars</div>
-    </div>`;
+
+  const hasNative = nativeText.trim().length > 0;
+  const hasOcr = ocrText.trim().length > 0;
+  const hasImages = images.length > 0;
+
+  let html = `<div style="padding:16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:12px;">
+    <!-- Page Header & Badges -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="color:var(--accent);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Page ${page.page||'?'} of ${total}</div>
+      <span class="badge ${hasNative ? 'success' : 'error'}" style="font-size:10.5px;padding:1px 6px;">
+        <i class="ti ${hasNative ? 'ti-circle-check' : 'ti-circle-x'}"></i> Native Text
+      </span>
+      <span class="badge ${hasOcr ? 'warning' : 'error'}" style="font-size:10.5px;padding:1px 6px;">
+        <i class="ti ${hasOcr ? 'ti-circle-check' : 'ti-circle-x'}"></i> OCR
+      </span>
+      <span class="badge ${hasImages ? 'success' : 'error'}" style="font-size:10.5px;padding:1px 6px; ${hasImages ? 'background:var(--accent-bg);color:var(--accent);border-color:rgba(224,78,31,0.15);' : ''}">
+        <i class="ti ${hasImages ? 'ti-photo' : 'ti-circle-x'}"></i> Images ${hasImages ? `(${images.length})` : ''}
+      </span>
+    </div>
+
+    <!-- 1. Native Text Section -->
+    <div style="background:var(--surface);padding:12px;border:1px solid var(--border);border-radius:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px dashed var(--border);padding-bottom:4px;">
+        <span style="font-size:11.5px;font-weight:600;color:var(--ink2);">Native Text Extraction</span>
+        <span style="font-size:11px;font-weight:500;color:${hasNative ? 'var(--green)' : 'var(--ink3)'};">
+          ${hasNative ? '✓ Native Text Found' : '✗ No Native Text Found'}
+        </span>
+      </div>
+      ${hasNative ? `<div style="font-family:var(--mono);font-size:11.5px;color:var(--ink);line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:150px;overflow-y:auto;background:#fff;padding:8px;border-radius:5px;border:1px solid var(--border2);">${esc(nativeText)}</div>` : ''}
+    </div>
+
+    <!-- 2. OCR Section -->
+    <div style="background:var(--surface);padding:12px;border:1px solid var(--border);border-radius:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px dashed var(--border);padding-bottom:4px;">
+        <span style="font-size:11.5px;font-weight:600;color:var(--ink2);">OCR Extraction</span>
+        <span style="font-size:11px;font-weight:500;color:${hasOcr ? 'var(--yellow)' : 'var(--ink3)'};">
+          ${hasOcr ? '✓ OCR Applied' : '⊙ OCR Not Required'}
+        </span>
+      </div>
+      ${hasOcr ? `<div style="font-family:var(--mono);font-size:11.5px;color:var(--ink);line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:150px;overflow-y:auto;background:#fff;padding:8px;border-radius:5px;border:1px solid var(--border2);">${esc(ocrText)}</div>` : ''}
+    </div>
+
+    <!-- 3. Embedded Image Analysis Section -->
+    <div style="background:var(--surface);padding:12px;border:1px solid var(--border);border-radius:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px dashed var(--border);padding-bottom:4px;">
+        <span style="font-size:11.5px;font-weight:600;color:var(--ink2);">Embedded Image Analysis</span>
+        <span style="font-size:11px;font-weight:500;color:${hasImages ? 'var(--accent)' : 'var(--ink3)'};">
+          ${hasImages ? `✓ ${images.length} Image(s) Found` : '⊙ No Images Found'}
+        </span>
+      </div>
+      ${hasImages ? images.map((img, idx) => `
+        <div style="background:#fff;padding:10px;border-radius:6px;border:1px solid var(--border2);margin-top:8px;">
+          <div style="font-size:11px;color:var(--ink2);font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between;">
+            <span>Image ${idx+1}</span>
+            <span style="font-family:var(--mono);color:var(--accent);">${img.width}x${img.height} px</span>
+          </div>
+          <div style="font-size:12px;color:var(--ink);line-height:1.5;font-family:var(--mono);background:var(--surface);padding:6px 8px;border-radius:4px;max-height:120px;overflow-y:auto;">${esc(img.description)}</div>
+        </div>
+      `).join('') : ''}
+    </div>
+  </div>`;
+  return html;
+}
+
+function scrollToDocxExtractionBottom() {
+  const el = document.getElementById('docx-extraction-actions');
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }
-  if (images.length > 0) {
-    html += `<div style="margin-bottom:10px;"><div style="font-size:11px;color:var(--yellow);font-weight:500;margin-bottom:7px;display:flex;align-items:center;gap:5px;"><i class="ti ti-photo"></i>${images.length} image${images.length>1?'s':''}</div>`;
-    images.forEach((img,i) => {
-      html += `<div style="background:var(--surface);padding:9px;border-radius:6px;margin-bottom:7px;border:1px solid var(--border);">
-        <div style="font-size:11px;color:var(--ink2);font-weight:500;margin-bottom:5px;">Image ${i+1} — ${img.dimensions||'unknown'}</div>
-        <div style="font-size:12px;color:var(--ink);line-height:1.5;max-height:90px;overflow-y:auto;">${(img.description||'').substring(0,200)}${img.description&&img.description.length>200?'…':''}</div>
-        <div style="font-size:10px;color:var(--ink3);margin-top:4px;">via ${img.model||'groq'}</div>
-      </div>`;
+}
+
+async function startDocxLiveExtraction() {
+  if (!selectedFiles['docx']) { alert('Please select a DOCX file'); return; }
+  const panel = document.getElementById('docx-live-panel');
+  panel.style.display = 'block';
+  panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:24px;"><div class="spinner" style="margin:0;"></div><span style="color:var(--ink2);font-size:13px;font-weight:500;">Extracting pages…</span></div>`;
+  const formData = new FormData();
+  formData.append('file', selectedFiles['docx']);
+  try {
+    const res  = await fetch(`${API_URL}/docx/live-extract`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!data.success) {
+      panel.innerHTML = `<div style="padding:16px;color:var(--red);background:var(--red-bg);border-radius:8px;"><strong>Error:</strong> ${data.error || 'Failed'}</div>`;
+      return;
+    }
+    renderDocxExtraction(data);
+  } catch (err) {
+    panel.innerHTML = `<div style="padding:16px;color:var(--red);background:var(--red-bg);border-radius:8px;"><strong>Connection error:</strong> ${err.message}</div>`;
+  }
+}
+
+function renderDocxExtraction(data) {
+  const panel = document.getElementById('docx-live-panel');
+  let allText = '';
+  
+  let totalPages = data.total_pages || (data.pages ? data.pages.length : 0);
+  let nativePages = 0;
+  let ocrPages = 0;
+  let imagePages = 0;
+  let totalImages = 0;
+
+  if (data.pages) {
+    data.pages.forEach(p => {
+      let hasNative = p.native_text && p.native_text.trim();
+      let hasOcr = p.ocr_text && p.ocr_text.trim();
+      let hasImages = p.images && p.images.length > 0;
+
+      if (hasNative) {
+        nativePages++;
+        allText += p.native_text + '\n\n';
+      }
+      if (hasOcr) {
+        ocrPages++;
+        allText += p.ocr_text + '\n\n';
+      }
+      if (hasImages) {
+        imagePages++;
+        totalImages += p.images.length;
+        p.images.forEach(img => {
+          if (img.description) {
+            allText += img.description + '\n\n';
+          }
+        });
+      }
     });
-    html += `</div>`;
   }
-  html += `</div>`;
+
+  currentExtractedText = allText.trim();
+  currentFilename = data.filename || 'document';
+
+  let html = `<div style="padding:16px;border-bottom:1px solid var(--border);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-weight:600;color:var(--accent);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;">Extraction Report</div>
+      <button class="btn-small" style="padding:4px 8px;font-size:11px;background:#fff;border:1px solid var(--border2);color:var(--ink2);border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;" onclick="scrollToDocxExtractionBottom()">
+        <i class="ti ti-arrow-down" style="font-size:11px;"></i> Scroll to bottom
+      </button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+      <div style="padding:9px;background:var(--surface);border:1px solid var(--border);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--ink2);margin-bottom:3px;font-weight:500;white-space:nowrap;">Total Pages</div>
+        <div style="font-size:15px;font-weight:600;color:var(--ink);">${totalPages}</div>
+      </div>
+      <div style="padding:9px;background:var(--green-bg);border:1px solid rgba(22,163,74,0.1);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--green);margin-bottom:3px;font-weight:500;white-space:nowrap;">Native Pages</div>
+        <div style="font-size:15px;font-weight:600;color:var(--green);">${nativePages}</div>
+      </div>
+      <div style="padding:9px;background:var(--yellow-bg);border:1px solid rgba(180,83,9,0.1);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--yellow);margin-bottom:3px;font-weight:500;white-space:nowrap;">OCR Pages</div>
+        <div style="font-size:15px;font-weight:600;color:var(--yellow);">${ocrPages}</div>
+      </div>
+      <div style="padding:9px;background:var(--accent-bg);border:1px solid rgba(224,78,31,0.1);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--accent);margin-bottom:3px;font-weight:500;white-space:nowrap;">Image Pages</div>
+        <div style="font-size:15px;font-weight:600;color:var(--accent);">${imagePages}</div>
+      </div>
+      <div style="padding:9px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--ink2);margin-bottom:3px;font-weight:500;white-space:nowrap;">Total Images</div>
+        <div style="font-size:15px;font-weight:600;color:var(--ink);">${totalImages}</div>
+      </div>
+    </div>
+  </div>`;
+
+  if (data.pages) {
+    data.pages.forEach(p => { html += renderDocxPage(p, totalPages); });
+  }
+
+  html += `<div id="docx-extraction-actions" style="padding:14px;border-top:1px solid var(--border);display:flex;gap:8px;">
+    <button style="flex:1;padding:10px;background:linear-gradient(135deg,var(--accent),#a83410);color:#fff;border:none;border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 2px 10px var(--accent-glow);" onclick="continueToPinecone()">
+      <i class="ti ti-check"></i> Continue
+    </button>
+    <button style="padding:10px 14px;background:var(--surface2);color:var(--ink);border:1px solid var(--border2);border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font);" onclick="document.getElementById('docx-live-panel').style.display='none'">
+      Close
+    </button>
+  </div>`;
+  panel.innerHTML = html;
+}
+
+function renderDocxPage(page, total) {
+  const nativeText = page.native_text || '';
+  const ocrText = page.ocr_text || '';
+  const images = page.images || [];
+
+  const hasNative = nativeText.trim().length > 0;
+  const hasOcr = ocrText.trim().length > 0;
+  const hasImages = images.length > 0;
+
+  let html = `<div style="padding:16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:12px;">
+    <!-- Page Header & Badges -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="color:var(--accent);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Page ${page.page||'?'} of ${total}</div>
+      <span class="badge ${hasNative ? 'success' : 'error'}" style="font-size:10.5px;padding:1px 6px;">
+        <i class="ti ${hasNative ? 'ti-circle-check' : 'ti-circle-x'}"></i> Native Text
+      </span>
+      <span class="badge ${hasOcr ? 'warning' : 'error'}" style="font-size:10.5px;padding:1px 6px;">
+        <i class="ti ${hasOcr ? 'ti-circle-check' : 'ti-circle-x'}"></i> OCR
+      </span>
+      <span class="badge ${hasImages ? 'success' : 'error'}" style="font-size:10.5px;padding:1px 6px; ${hasImages ? 'background:var(--accent-bg);color:var(--accent);border-color:rgba(224,78,31,0.15);' : ''}">
+        <i class="ti ${hasImages ? 'ti-photo' : 'ti-circle-x'}"></i> Images ${hasImages ? `(${images.length})` : ''}
+      </span>
+    </div>
+
+    <!-- 1. Native Text Section -->
+    <div style="background:var(--surface);padding:12px;border:1px solid var(--border);border-radius:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px dashed var(--border);padding-bottom:4px;">
+        <span style="font-size:11.5px;font-weight:600;color:var(--ink2);">Native Text Extraction</span>
+        <span style="font-size:11px;font-weight:500;color:${hasNative ? 'var(--green)' : 'var(--ink3)'};">
+          ${hasNative ? '✓ Native Text Found' : '✗ No Native Text Found'}
+        </span>
+      </div>
+      ${hasNative ? `<div style="font-family:var(--mono);font-size:11.5px;color:var(--ink);line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:150px;overflow-y:auto;background:#fff;padding:8px;border-radius:5px;border:1px solid var(--border2);">${esc(nativeText)}</div>` : ''}
+    </div>
+
+    <!-- 2. OCR Section -->
+    <div style="background:var(--surface);padding:12px;border:1px solid var(--border);border-radius:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px dashed var(--border);padding-bottom:4px;">
+        <span style="font-size:11.5px;font-weight:600;color:var(--ink2);">OCR Extraction</span>
+        <span style="font-size:11px;font-weight:500;color:${hasOcr ? 'var(--yellow)' : 'var(--ink3)'};">
+          ${hasOcr ? '✓ OCR Applied' : '⊙ OCR Not Required'}
+        </span>
+      </div>
+      ${hasOcr ? `<div style="font-family:var(--mono);font-size:11.5px;color:var(--ink);line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:150px;overflow-y:auto;background:#fff;padding:8px;border-radius:5px;border:1px solid var(--border2);">${esc(ocrText)}</div>` : ''}
+    </div>
+
+    <!-- 3. Embedded Image Analysis Section -->
+    <div style="background:var(--surface);padding:12px;border:1px solid var(--border);border-radius:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px dashed var(--border);padding-bottom:4px;">
+        <span style="font-size:11.5px;font-weight:600;color:var(--ink2);">Embedded Image Analysis</span>
+        <span style="font-size:11px;font-weight:500;color:${hasImages ? 'var(--accent)' : 'var(--ink3)'};">
+          ${hasImages ? `✓ ${images.length} Image(s) Found` : '⊙ No Images Found'}
+        </span>
+      </div>
+      ${hasImages ? images.map((img, idx) => `
+        <div style="background:#fff;padding:10px;border-radius:6px;border:1px solid var(--border2);margin-top:8px;">
+          <div style="font-size:11px;color:var(--ink2);font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between;">
+            <span>Image ${idx+1}</span>
+            <span style="font-family:var(--mono);color:var(--accent);">${img.width}x${img.height} px</span>
+          </div>
+          <div style="font-size:12px;color:var(--ink);line-height:1.5;font-family:var(--mono);background:var(--surface);padding:6px 8px;border-radius:4px;max-height:120px;overflow-y:auto;">${esc(img.description)}</div>
+        </div>
+      `).join('') : ''}
+    </div>
+  </div>`;
+  return html;
+}
+
+function scrollToUrlExtractionBottom() {
+  const el = document.getElementById('url-extraction-actions');
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+}
+
+async function startUrlLiveExtraction() {
+  const urlVal = document.getElementById('url-input').value.trim();
+  if (!urlVal) { alert('Please enter a URL'); return; }
+  const panel = document.getElementById('url-live-panel');
+  panel.style.display = 'block';
+  panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:24px;"><div class="spinner" style="margin:0;"></div><span style="color:var(--ink2);font-size:13px;font-weight:500;">Extracting page content…</span></div>`;
+  const formData = new FormData();
+  formData.append('url', urlVal);
+  try {
+    const res  = await fetch(`${API_URL}/url/live-extract`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!data.success) {
+      panel.innerHTML = `<div style="padding:16px;color:var(--red);background:var(--red-bg);border-radius:8px;"><strong>Error:</strong> ${data.error || 'Failed'}</div>`;
+      return;
+    }
+    renderUrlExtraction(data);
+  } catch (err) {
+    panel.innerHTML = `<div style="padding:16px;color:var(--red);background:var(--red-bg);border-radius:8px;"><strong>Connection error:</strong> ${err.message}</div>`;
+  }
+}
+
+function renderUrlExtraction(data) {
+  const panel = document.getElementById('url-live-panel');
+  let allText = '';
+  
+  let totalPages = data.total_pages || (data.pages ? data.pages.length : 0);
+  let nativePages = 0;
+  let ocrPages = 0;
+  let imagePages = 0;
+  let totalImages = 0;
+
+  if (data.pages) {
+    data.pages.forEach(p => {
+      let hasNative = p.native_text && p.native_text.trim();
+      let hasOcr = p.ocr_text && p.ocr_text.trim();
+      let hasImages = p.images && p.images.length > 0;
+
+      if (hasNative) {
+        nativePages++;
+        allText += p.native_text + '\n\n';
+      }
+      if (hasOcr) {
+        ocrPages++;
+        allText += p.ocr_text + '\n\n';
+      }
+      if (hasImages) {
+        imagePages++;
+        totalImages += p.images.length;
+        p.images.forEach(img => {
+          if (img.description) {
+            allText += img.description + '\n\n';
+          }
+        });
+      }
+    });
+  }
+
+  currentExtractedText = allText.trim();
+  currentFilename = data.filename || 'webpage';
+
+  let html = `<div style="padding:16px;border-bottom:1px solid var(--border);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-weight:600;color:var(--accent);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;">Scraping Report</div>
+      <button class="btn-small" style="padding:4px 8px;font-size:11px;background:#fff;border:1px solid var(--border2);color:var(--ink2);border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;" onclick="scrollToUrlExtractionBottom()">
+        <i class="ti ti-arrow-down" style="font-size:11px;"></i> Scroll to bottom
+      </button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+      <div style="padding:9px;background:var(--surface);border:1px solid var(--border);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--ink2);margin-bottom:3px;font-weight:500;white-space:nowrap;">Total Pages</div>
+        <div style="font-size:15px;font-weight:600;color:var(--ink);">${totalPages}</div>
+      </div>
+      <div style="padding:9px;background:var(--green-bg);border:1px solid rgba(22,163,74,0.1);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--green);margin-bottom:3px;font-weight:500;white-space:nowrap;">Native Pages</div>
+        <div style="font-size:15px;font-weight:600;color:var(--green);">${nativePages}</div>
+      </div>
+      <div style="padding:9px;background:var(--yellow-bg);border:1px solid rgba(180,83,9,0.1);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--yellow);margin-bottom:3px;font-weight:500;white-space:nowrap;">OCR Pages</div>
+        <div style="font-size:15px;font-weight:600;color:var(--yellow);">${ocrPages}</div>
+      </div>
+      <div style="padding:9px;background:var(--accent-bg);border:1px solid rgba(224,78,31,0.1);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--accent);margin-bottom:3px;font-weight:500;white-space:nowrap;">Image Pages</div>
+        <div style="font-size:15px;font-weight:600;color:var(--accent);">${imagePages}</div>
+      </div>
+      <div style="padding:9px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;text-align:center;">
+        <div style="font-size:10px;color:var(--ink2);margin-bottom:3px;font-weight:500;white-space:nowrap;">Total Images</div>
+        <div style="font-size:15px;font-weight:600;color:var(--ink);">${totalImages}</div>
+      </div>
+    </div>
+  </div>`;
+
+  if (data.pages) {
+    data.pages.forEach(p => { html += renderUrlPage(p, totalPages); });
+  }
+
+  html += `<div id="url-extraction-actions" style="padding:14px;border-top:1px solid var(--border);display:flex;gap:8px;">
+    <button style="flex:1;padding:10px;background:linear-gradient(135deg,var(--accent),#a83410);color:#fff;border:none;border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 2px 10px var(--accent-glow);" onclick="continueToPinecone()">
+      <i class="ti ti-check"></i> Continue
+    </button>
+    <button style="padding:10px 14px;background:var(--surface2);color:var(--ink);border:1px solid var(--border2);border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font);" onclick="document.getElementById('url-live-panel').style.display='none'">
+      Close
+    </button>
+  </div>`;
+  panel.innerHTML = html;
+}
+
+function renderUrlPage(page, total) {
+  const nativeText = page.native_text || '';
+  const ocrText = page.ocr_text || '';
+  const images = page.images || [];
+
+  const hasNative = nativeText.trim().length > 0;
+  const hasOcr = ocrText.trim().length > 0;
+  const hasImages = images.length > 0;
+
+  let html = `<div style="padding:16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:12px;">
+    <!-- Page Header & Badges -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="color:var(--accent);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Page ${page.page||'?'} of ${total}</div>
+      <span class="badge ${hasNative ? 'success' : 'error'}" style="font-size:10.5px;padding:1px 6px;">
+        <i class="ti ${hasNative ? 'ti-circle-check' : 'ti-circle-x'}"></i> Native Text
+      </span>
+      <span class="badge ${hasOcr ? 'warning' : 'error'}" style="font-size:10.5px;padding:1px 6px;">
+        <i class="ti ${hasOcr ? 'ti-circle-check' : 'ti-circle-x'}"></i> OCR
+      </span>
+      <span class="badge ${hasImages ? 'success' : 'error'}" style="font-size:10.5px;padding:1px 6px; ${hasImages ? 'background:var(--accent-bg);color:var(--accent);border-color:rgba(224,78,31,0.15);' : ''}">
+        <i class="ti ${hasImages ? 'ti-photo' : 'ti-circle-x'}"></i> Images ${hasImages ? `(${images.length})` : ''}
+      </span>
+    </div>
+
+    <!-- 1. Native Text Section -->
+    <div style="background:var(--surface);padding:12px;border:1px solid var(--border);border-radius:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px dashed var(--border);padding-bottom:4px;">
+        <span style="font-size:11.5px;font-weight:600;color:var(--ink2);">Native Text Extraction</span>
+        <span style="font-size:11px;font-weight:500;color:${hasNative ? 'var(--green)' : 'var(--ink3)'};">
+          ${hasNative ? '✓ Native Text Found' : '✗ No Native Text Found'}
+        </span>
+      </div>
+      ${hasNative ? `<div style="font-family:var(--mono);font-size:11.5px;color:var(--ink);line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto;background:#fff;padding:8px;border-radius:5px;border:1px solid var(--border2);">${esc(nativeText)}</div>` : ''}
+    </div>
+
+    <!-- 2. OCR Section -->
+    <div style="background:var(--surface);padding:12px;border:1px solid var(--border);border-radius:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px dashed var(--border);padding-bottom:4px;">
+        <span style="font-size:11.5px;font-weight:600;color:var(--ink2);">OCR Extraction</span>
+        <span style="font-size:11px;font-weight:500;color:${hasOcr ? 'var(--yellow)' : 'var(--ink3)'};">
+          ${hasOcr ? '✓ OCR Applied' : '⊙ OCR Not Required'}
+        </span>
+      </div>
+      ${hasOcr ? `<div style="font-family:var(--mono);font-size:11.5px;color:var(--ink);line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:150px;overflow-y:auto;background:#fff;padding:8px;border-radius:5px;border:1px solid var(--border2);">${esc(ocrText)}</div>` : ''}
+    </div>
+
+    <!-- 3. Embedded Image Analysis Section -->
+    <div style="background:var(--surface);padding:12px;border:1px solid var(--border);border-radius:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px dashed var(--border);padding-bottom:4px;">
+        <span style="font-size:11.5px;font-weight:600;color:var(--ink2);">Embedded Image Analysis</span>
+        <span style="font-size:11px;font-weight:500;color:${hasImages ? 'var(--accent)' : 'var(--ink3)'};">
+          ${hasImages ? `✓ ${images.length} Image(s) Found` : '⊙ No Images Found'}
+        </span>
+      </div>
+      ${hasImages ? images.map((img, idx) => `
+        <div style="background:#fff;padding:10px;border-radius:6px;border:1px solid var(--border2);margin-top:8px;">
+          <div style="font-size:11px;color:var(--ink2);font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between;">
+            <span>Image ${idx+1}</span>
+            <span style="font-family:var(--mono);color:var(--accent);">${img.width}x${img.height} px</span>
+          </div>
+          <div style="font-size:12px;color:var(--ink);line-height:1.5;font-family:var(--mono);background:var(--surface);padding:6px 8px;border-radius:4px;max-height:120px;overflow-y:auto;">${esc(img.description)}</div>
+        </div>
+      `).join('') : ''}
+    </div>
+  </div>`;
   return html;
 }
 

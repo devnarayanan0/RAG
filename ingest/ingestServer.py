@@ -21,7 +21,8 @@ from ingest.ingestRouter import (
     step_generate_embeddings,
     step_store_in_pinecone,
     get_session_state,
-    extract_pdf_live_with_vision
+    extract_pdf_live_with_vision,
+    extract_docx_live_with_vision
 )
 from ingest.services.sync_service import (
     sync_folder_to_vector_db,
@@ -279,6 +280,84 @@ async def pdf_live_extract(file: UploadFile = File(...)):
             "error": str(e),
             "filename": file.filename if file else None
         }
+
+
+@app.post("/docx/live-extract", tags=["DOCX Extraction"])
+async def docx_live_extract(file: UploadFile = File(...)):
+    """Live DOCX extraction with embedded images and vision descriptions."""
+    try:
+        source_rel = f"docx/{file.filename}"
+        if is_file_already_indexed(source_rel, index):
+            logger.info(f"File already indexed: {source_rel}")
+            return {
+                "success": False,
+                "error": "File already indexed",
+                "duplicate": {
+                    "status": True,
+                    "type": "already_indexed",
+                    "source": source_rel
+                }
+            }
+
+        folder = os.path.join(BASE_DATA, "docx")
+        os.makedirs(folder, exist_ok=True)
+        path = os.path.join(folder, file.filename)
+        
+        content = await file.read()
+        with open(path, "wb") as f:
+            f.write(content)
+        
+        result = await extract_docx_live_with_vision(path)
+        
+        return {
+            "success": result.get("success", False),
+            "filename": result.get("filename"),
+            "total_pages": result.get("total_pages", 0),
+            "total_images": result.get("total_images", 0),
+            "pages": result.get("pages", []),
+            "error": result.get("error")
+        }
+    except Exception as e:
+        logger.error(f"DOCX live extract error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "filename": file.filename if file else None
+        }
+
+
+@app.post("/url/live-extract", tags=["URL Extraction"])
+async def url_live_extract(url: str = Form(...)):
+    """Live URL extraction with text scraper."""
+    try:
+        from ingest.extractor.url import process_url
+        res = process_url(url)
+        text = res.get("text", "")
+        metadata = res.get("metadata", {})
+        
+        page_result = {
+            "page": 1,
+            "native_text": text,
+            "ocr_text": None,
+            "images": [],
+            "total_pages": 1
+        }
+        
+        return {
+            "success": True,
+            "filename": metadata.get("filename", url),
+            "total_pages": 1,
+            "total_images": 0,
+            "pages": [page_result]
+        }
+    except Exception as e:
+        logger.error(f"URL live extract error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "filename": url
+        }
+
 
 
 #
