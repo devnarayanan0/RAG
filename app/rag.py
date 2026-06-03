@@ -114,13 +114,35 @@ def get_chunks(vector: list) -> list:
         return []
 
 
-def get_text(chunk: dict) -> str:
-    """Safely extract text from chunk metadata."""
-    if not isinstance(chunk, dict):
-        return ""
-    metadata = chunk.get("metadata", {})
-    text = metadata.get("text", "")
-    return text.strip() if isinstance(text, str) else ""
+def safe_get(obj, key, default=None):
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    if hasattr(obj, "get"):
+        try:
+            val = obj.get(key, default)
+            if val is not None:
+                return val
+        except Exception:
+            pass
+    if hasattr(obj, key):
+        return getattr(obj, key)
+    try:
+        return obj[key]
+    except Exception:
+        return default
+
+
+def get_text(chunk) -> str:
+    """Safely extract text and source from chunk metadata."""
+    metadata = safe_get(chunk, "metadata", {})
+    text = safe_get(metadata, "text", "")
+    source = safe_get(metadata, "source", "")
+    text_val = text.strip() if isinstance(text, str) else ""
+    if text_val and source:
+         return f"[Source Document: {source}]\n{text_val}"
+    return text_val
 
 
 def build_context(chunks: list) -> str:
@@ -132,8 +154,8 @@ def build_context(chunks: list) -> str:
     return "\n\n".join(texts)
 
 
-def ask_groq(question: str, context: str) -> str:
-    """Generate LLM response."""
+def ask_groq(question: str, context: str, retry_count: int = 0) -> str:
+    """Generate LLM response with automatic context-reduction fallback on token limits."""
     if not question or not context:
         return "Insufficient context or question"
     
@@ -152,6 +174,18 @@ def ask_groq(question: str, context: str) -> str:
         return response.choices[0].message.content
     except Exception as e:
         logger.error(f"Groq request failed: {e}")
+        err_msg = str(e).lower()
+        if ("limit" in err_msg or "large" in err_msg or "413" in err_msg or "rate" in err_msg) and retry_count < 2:
+            logger.info("Groq size limit reached. Reducing context size and retrying...")
+            # Split by chunks (double newlines) and take the first half
+            chunks = context.split("\n\n")
+            if len(chunks) > 1:
+                reduced_context = "\n\n".join(chunks[:len(chunks)//2])
+                return ask_groq(question, reduced_context, retry_count + 1)
+            elif len(context) > 200:
+                # Direct string truncation fallback
+                reduced_context = context[:len(context)//2]
+                return ask_groq(question, reduced_context, retry_count + 1)
         return "Unable to generate response"
 
 
@@ -168,6 +202,9 @@ def ask(question: str) -> str:
     chunks = get_chunks(vector)
     if not chunks:
         return "No relevant context found"
+    
+    # Restrict to TOP_K_FINAL chunks to stay within model TPM limit (12,000 tokens on Groq free tier)
+    chunks = chunks[:TOP_K_FINAL]
     
     context = build_context(chunks)
     if not context or len(context) < MIN_CONTEXT_LENGTH:
@@ -193,12 +230,13 @@ def ask_with_rerank(question: str) -> dict:
     # Convert to format expected by reranker
     chunks_for_rerank = []
     for chunk in chunks:
+        metadata = safe_get(chunk, "metadata", {})
         chunks_for_rerank.append({
-            "id": chunk.get("id", ""),
-            "chunk_id": chunk.get("metadata", {}).get("chunk_id", ""),
+            "id": safe_get(chunk, "id", ""),
+            "chunk_id": safe_get(metadata, "chunk_id", ""),
             "text": get_text(chunk),
-            "vector_score": chunk.get("score", 0.0),
-            "metadata": chunk.get("metadata", {})
+            "vector_score": safe_get(chunk, "score", 0.0),
+            "metadata": metadata
         })
     
     # Rerank
