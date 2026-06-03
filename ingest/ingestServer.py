@@ -30,6 +30,7 @@ from ingest.services.sync_service import (
     detect_new_files,
     detect_deleted_files,
     delete_missing_vectors,
+    is_file_already_indexed,
 )
 from ingest.services.chunk_service import chunk_text
 from ingest.services.duplicate_service import DuplicateChecker
@@ -56,7 +57,7 @@ extracted_text_sessions = {}  # session_id -> {"text": str, "filename": str, "up
 def query_pinecone_for_hash(hash_val: str) -> dict:
     """Query Pinecone for vectors matching a hash."""
     try:
-        results = index.query(vector=[0]*384, top_k=100, filter={"hash": {"$eq": hash_val}})
+        results = index.query(vector=[0]*384, top_k=100, filter={"hash": {"$eq": hash_val}}, include_metadata=True)
         if results.get("matches"):
             match = results["matches"][0]
             return {
@@ -240,6 +241,19 @@ async def upload(
 async def pdf_live_extract(file: UploadFile = File(...)):
     """Live PDF extraction with embedded images and vision descriptions."""
     try:
+        source_rel = f"pdf/{file.filename}"
+        if is_file_already_indexed(source_rel, index):
+            logger.info(f"File already indexed: {source_rel}")
+            return {
+                "success": False,
+                "error": "File already indexed",
+                "duplicate": {
+                    "status": True,
+                    "type": "already_indexed",
+                    "source": source_rel
+                }
+            }
+
         folder = os.path.join(BASE_DATA, "pdf")
         os.makedirs(folder, exist_ok=True)
         path = os.path.join(folder, file.filename)
@@ -447,9 +461,42 @@ async def upload_extracted(
             logger.error(f"[upload-extracted] No chunks found in session {session_id}")
             return {"success": False, "error": "No chunks in session"}
         
+        # Check if already indexed by file path
+        source_rel = f"{source_type}/{filename}"
+        if is_file_already_indexed(source_rel, index):
+            logger.info(f"File already indexed: {source_rel}")
+            return {
+                "success": False,
+                "error": "File already indexed",
+                "duplicate": {
+                    "status": True,
+                    "type": "already_indexed",
+                    "source": source_rel
+                }
+            }
+
         # Generate metadata and hashes
         duplicate_checker = DuplicateChecker()
         chunk_hashes = [duplicate_checker.generate_hash(c) for c in chunks]
+        
+        # Check if first chunk already exists in Pinecone to detect duplicate content
+        if chunk_hashes:
+            match = query_pinecone_for_hash(chunk_hashes[0])
+            if match.get("found"):
+                matched_meta = match.get("metadata", {})
+                matched_file = matched_meta.get("filename", "Unknown")
+                matched_chunk_id = matched_meta.get("chunk_id", "Unknown")
+                logger.warning(f"Duplicate content rejected: {filename} matches chunk {matched_chunk_id} in {matched_file}")
+                return {
+                    "success": False,
+                    "error": f"Duplicate content detected: matches chunk '{matched_chunk_id}' in file '{matched_file}'",
+                    "duplicate": {
+                        "status": True,
+                        "type": "exact_hash_match",
+                        "matched_file": matched_file,
+                        "matched_chunk_id": matched_chunk_id
+                    }
+                }
         
         base_metadata = {
             "source": f"{source_type}/{filename}",

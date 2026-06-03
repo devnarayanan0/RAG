@@ -745,6 +745,13 @@ let currentFilename = '';
 let currentSession = null;
 let currentSteps = {};
 
+function scrollToExtractionBottom() {
+  const el = document.getElementById('pdf-extraction-actions');
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+}
+
 async function loadChunkingStrategies() {
   try {
     const res = await fetch(`${API_URL}/config/chunking`);
@@ -992,7 +999,7 @@ async function startPdfLiveExtraction() {
   if (!selectedFiles['pdf']) { alert('Please select a PDF file'); return; }
   const panel = document.getElementById('pdf-live-panel');
   panel.style.display = 'block';
-  panel.innerHTML = `<div style="padding:18px;text-align:center;"><div class="spinner"></div><div style="color:var(--ink2);margin-top:10px;font-size:13px;">Extracting pages…</div></div>`;
+  panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:24px;"><div class="spinner" style="margin:0;"></div><span style="color:var(--ink2);font-size:13px;font-weight:500;">Extracting pages…</span></div>`;
   const formData = new FormData();
   formData.append('file', selectedFiles['pdf']);
   try {
@@ -1015,7 +1022,12 @@ function renderPdfExtraction(data) {
   currentExtractedText = allText;
   currentFilename = data.filename || 'document';
   let html = `<div style="padding:16px;border-bottom:1px solid var(--border);">
-    <div style="font-weight:600;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:9px;">Extraction complete</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+      <div style="font-weight:600;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Extraction complete</div>
+      <button class="btn-small" style="padding:4px 8px;font-size:11px;background:#fff;border:1px solid var(--border2);color:var(--ink2);border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;" onclick="scrollToExtractionBottom()">
+        <i class="ti ti-arrow-down" style="font-size:11px;"></i> Scroll to bottom
+      </button>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
       <div style="padding:9px;background:var(--green-bg);border-radius:6px;"><div style="font-size:11px;color:var(--ink2);margin-bottom:3px;">Pages</div><div style="font-size:15px;font-weight:600;color:var(--green);">${data.total_pages||0}</div></div>
       <div style="padding:9px;background:var(--yellow-bg);border-radius:6px;"><div style="font-size:11px;color:var(--ink2);margin-bottom:3px;">Images</div><div style="font-size:15px;font-weight:600;color:var(--yellow);">${data.total_images||0}</div></div>
@@ -1023,7 +1035,7 @@ function renderPdfExtraction(data) {
     </div>
   </div>`;
   data.pages.forEach(p => { html += renderPdfPage(p, data.total_pages||0); });
-  html += `<div style="padding:14px;border-top:1px solid var(--border);display:flex;gap:8px;">
+  html += `<div id="pdf-extraction-actions" style="padding:14px;border-top:1px solid var(--border);display:flex;gap:8px;">
     <button style="flex:1;padding:10px;background:linear-gradient(135deg,var(--accent),#a83410);color:#fff;border:none;border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 2px 10px var(--accent-glow);" onclick="continueToPinecone()">
       <i class="ti ti-check"></i> Continue
     </button>
@@ -1096,7 +1108,7 @@ async function uploadWithChunkingStrategy() {
   if (!currentExtractedText.trim()) { alert('No extracted text. Please extract the PDF first.'); return; }
   const panel = document.getElementById('pdf-live-panel');
   panel.style.display = 'block';
-  panel.innerHTML = `<div style="padding:18px;text-align:center;"><div class="spinner"></div><div style="color:var(--ink2);margin-top:10px;font-size:13px;">Chunking with <strong>${selectedStrategy}</strong>…</div></div>`;
+  panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:24px;"><div class="spinner" style="margin:0;"></div><span style="color:var(--ink2);font-size:13px;font-weight:500;">Chunking with <strong>${selectedStrategy}</strong>…</span></div>`;
   try {
     const previewForm = new FormData();
     previewForm.append('extracted_text', currentExtractedText);
@@ -1108,7 +1120,7 @@ async function uploadWithChunkingStrategy() {
       panel.innerHTML = `<div style="padding:16px;color:var(--red);background:var(--red-bg);border-radius:8px;"><strong>Chunking error:</strong> ${previewData.error}</div>`;
       return;
     }
-    panel.innerHTML = `<div style="padding:18px;text-align:center;"><div class="spinner"></div><div style="color:var(--ink2);margin-top:10px;font-size:13px;">Uploading ${previewData.total_chunks} chunks…</div></div>`;
+    panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:24px;"><div class="spinner" style="margin:0;"></div><span style="color:var(--ink2);font-size:13px;font-weight:500;">Uploading ${previewData.total_chunks} chunks…</span></div>`;
     const uploadForm = new FormData();
     uploadForm.append('session_id', previewData.session_id);
     uploadForm.append('source_type', 'pdf');
